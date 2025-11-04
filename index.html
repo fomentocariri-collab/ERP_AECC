@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AssociaçãoPRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'primary': { // Dark Green from Logo
+                '50': '#f0f6f4',
+                '100': '#ddebe6',
+                '200': '#bbd7cd',
+                '300': '#99c3b4',
+                '400': '#5f9e86',
+                '500': '#43846c',
+                '600': '#3a7963',
+                '700': '#2d5e4d', // Base color from logo
+                '800': '#244b3e',
+                '900': '#1e3e33',
+                '950': '#11241d',
+              },
+              'secondary': { // Dark Red from Logo
+                '50': '#fdf4f4',
+                '100': '#fbe9e9',
+                '200': '#f6d5d5',
+                '300': '#efb7b7',
+                '400': '#e38f8f',
+                '500': '#d36767',
+                '600': '#b55555',
+                '700': '#a43a3a', // Base color from logo
+                '800': '#8c2d2d',
+                '900': '#762929',
+                '950': '#401313',
+              }
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^18.2.0/",
+    "react": "https://aistudiocdn.com/react@^18.2.0",
+    "react/": "https://aistudiocdn.com/react@^18.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.552.0",
+    "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-100 dark:bg-gray-900">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx?v=1.1"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
