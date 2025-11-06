@@ -28,7 +28,7 @@ export const Login: React.FC = () => {
             <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
                 <div className="text-center space-y-2">
                     {LOGO_BASE64 !== "[PLACEHOLDER_LOGO]" && 
-                        <img src={LOGO_BASE64} alt="Cariri Criativo Logo" className="mx-auto w-40 mb-4" />
+                        <img src={LOGO_BASE64} alt="Logo" className="mx-auto w-40 mb-4" />
                     }
                     <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                         Acessar a Plataforma

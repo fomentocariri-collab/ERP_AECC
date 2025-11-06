@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../supabaseClient';
-import type { Session } from '@supabase/supabase-js';
+import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -19,19 +19,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState<Session | null>(null);
   const [users, setUsers] = useState<User[]>([]);
 
-  const fetchUserProfile = useCallback(async (user: any) => {
-    if (!user) {
-      setCurrentUser(null);
+  const fetchUserProfile = useCallback(async (supabaseUser: SupabaseUser | null): Promise<User | null> => {
+    if (!supabaseUser) {
       return null;
     }
 
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('id, name, email, role, avatar_url')
-      .eq('id', user.id)
+      .eq('id', supabaseUser.id)
       .single();
     
     if (error) {
@@ -39,36 +37,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (currentUser) {
           alert("Falha ao buscar seu perfil de usuário. Isso geralmente é causado por uma política de segurança (RLS) na tabela 'profiles'. Verifique as permissões no painel do Supabase. Você será desconectado.");
       }
-      await supabase.auth.signOut();
-      setCurrentUser(null);
+      // Don't sign out here, let the auth state change handle it.
       return null;
     }
     
-    const userProfile = {
+    return {
       id: profile.id,
       email: profile.email,
       name: profile.name,
       role: profile.role,
       avatarUrl: profile.avatar_url,
     };
-    setCurrentUser(userProfile);
-    return userProfile;
-  }, [currentUser]);
-
+  }, [currentUser]); // Keep currentUser dependency to show alert correctly
 
   useEffect(() => {
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      await fetchUserProfile(session?.user ?? null);
+    setLoading(true);
+    // Get initial session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const userProfile = await fetchUserProfile(session?.user ?? null);
+      setCurrentUser(userProfile);
       setLoading(false);
-    };
+    });
 
-    getInitialSession();
-
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
+      async (_event, session) => {
+        const userProfile = await fetchUserProfile(session?.user ?? null);
+        setCurrentUser(userProfile);
+        // We set loading to false here as well, covering login/logout events
+        if(loading) setLoading(false); 
       }
     );
 
@@ -76,10 +73,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       subscription?.unsubscribe();
     };
   }, [fetchUserProfile]);
-
-  useEffect(() => {
-     fetchUserProfile(session?.user ?? null);
-  },[session, fetchUserProfile]);
 
 
   const fetchUsers = useCallback(async () => {
@@ -116,10 +109,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
-    setCurrentUser(null);
     if (error) {
         console.error('Error logging out:', error.message);
     }
+    setCurrentUser(null);
   }, []);
 
   const addUser = async (userData: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => {
@@ -128,6 +121,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error("Sessão de administrador não encontrada. Por favor, faça login novamente.");
     }
 
+    // Temporarily sign out the admin to sign up the new user
+    // This is a Supabase client-side limitation. A server-side function would be better.
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -147,6 +142,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         alert("Erro crítico: A sessão do administrador não pôde ser restaurada. Por favor, atualize a página.");
         return;
     }
+    // Also re-fetch the admin profile
+    const adminProfile = await fetchUserProfile(adminSession.user);
+    setCurrentUser(adminProfile);
+
 
     if (signUpError) {
         console.error('Error creating user:', signUpError);
@@ -170,7 +169,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
          email: data.email
      };
 
-     // Remove undefined keys to avoid sending them to Supabase
      Object.keys(snakeCaseData).forEach(key => (snakeCaseData as any)[key] === undefined && delete (snakeCaseData as any)[key]);
 
      const { error } = await supabase.from('profiles').update(snakeCaseData).eq('id', userId);
@@ -182,24 +180,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      }
      
      await fetchUsers();
-     // If the updated user is the current user, refresh their profile
      if (currentUser && currentUser.id === userId) {
-        const { data: { session } } = await supabase.auth.getSession();
-        await fetchUserProfile(session?.user ?? null);
+        const updatedProfile = { ...currentUser, ...data };
+        setCurrentUser(updatedProfile);
      }
   };
   
   const deleteUser = async (userId: string) => {
-    // This is a placeholder as client-side deletion is insecure.
-    // Real implementation should call a Supabase Edge Function.
-    alert("A exclusão de usuários deve ser feita através de uma função de servidor segura ou diretamente no painel do Supabase para evitar riscos de segurança.");
+    alert("A exclusão de usuários deve ser feita através de uma função de servidor segura (Supabase Edge Function) ou diretamente no painel do Supabase para evitar riscos de segurança.");
     console.warn(`Request to delete user ${userId} blocked on client-side.`);
   };
 
 
   const value = { currentUser, loading, users, login, logout, addUser, updateUser, deleteUser };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

@@ -18,7 +18,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
     <aside className="h-screen sticky top-0">
       <nav className="h-full flex flex-col bg-white dark:bg-gray-800 border-r dark:border-gray-700 shadow-sm">
         <div className="p-4 pb-2 flex justify-between items-center">
-          <img src={LOGO_BASE64} alt="Cariri Criativo Logo" className={`overflow-hidden transition-all ${expanded ? 'w-32' : 'w-0'}`} />
+          {LOGO_BASE64 !== "[PLACEHOLDER_LOGO]" ? (
+            <img src={LOGO_BASE64} alt="Logo" className={`overflow-hidden transition-all ${expanded ? 'w-32' : 'w-0'}`} />
+          ) : (
+            <div className={`overflow-hidden transition-all font-bold text-lg ${expanded ? 'w-32' : 'w-0'}`}>Associação</div>
+          )}
           <button onClick={() => setExpanded(curr => !curr)} className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
             {expanded ? <ChevronFirst /> : <ChevronLast />}
           </button>

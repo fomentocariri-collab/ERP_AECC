@@ -11,4 +11,4 @@ export const NAV_ITEMS = [
   { name: 'Settings', icon: <Settings size={20}/> },
 ];
 
-export const LOGO_BASE64 = "[PLACEHOLDER_LOGO]"; // Use um placeholder ou o caminho para um arquivo
+export const LOGO_BASE64 = "[PLACEHOLDER_LOGO]";
