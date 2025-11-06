@@ -121,15 +121,12 @@ const App: React.FC = () => {
       } finally {
         setAppLoading(false);
       }
-  }, [currentUser]); // Dependency only on currentUser
+  }, [currentUser]);
 
   useEffect(() => {
-    // This effect now correctly depends on `fetchData` which is stable due to useCallback.
-    // It will run when the user logs in/out.
     if (currentUser) {
       fetchData();
     } else {
-      // Clear data on logout
       setMembers([]);
       setTransactions([]);
       setEvents([]);
@@ -139,72 +136,76 @@ const App: React.FC = () => {
     }
   }, [currentUser, fetchData]);
 
-  const createCrudHandler = <T, K>(
-    tableName: string, 
-    onSuccess: (message: string) => void, 
-    operation: () => Promise<{ data: K | null; error: any }>
-  ) => async () => {
-    const { error } = await operation();
-    if (error) {
-      showToast(generateErrorMessage(`executar operação em ${tableName}`, error), 'error');
-    } else {
-      onSuccess(`Operação em ${tableName} bem-sucedida!`);
-      await fetchData(); // Refresh all data to ensure consistency
-    }
-  };
+  // FIX: Define a type for the generic function to avoid TSX parsing errors.
+  // The generic syntax `<K>(...)` inside useCallback was being parsed as a JSX tag.
+  type CreateCrudHandler = <T>(
+    operationName: string,
+    operation: () => Promise<{ data: T | null; error: any }>
+  ) => () => Promise<void>;
+
+  const createCrudHandler: CreateCrudHandler = useCallback(
+    (
+      operationName: string,
+      operation: () => Promise<{ data: any | null; error: any }>
+    ) => async () => {
+      try {
+        const { error } = await operation();
+        if (error) {
+          throw error;
+        }
+        showToast(`${operationName} com sucesso!`);
+        await fetchData(); // Refresh all data to ensure consistency
+      } catch (error: any) {
+        showToast(generateErrorMessage(operationName.toLowerCase(), error), 'error');
+      }
+    },
+    [fetchData] 
+  );
 
   const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
-    // FIX: Make the operation function async to ensure it returns a Promise.
-    await createCrudHandler('members', (m) => showToast(m), async () => 
+    await createCrudHandler('Adicionar membro', () => 
       supabase.from('members').insert([camelToSnake(newMemberData)]).select().single()
     )();
   };
 
   const handleUpdateMember = async (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => {
-    // FIX: Make the operation function async to ensure it returns a Promise.
-     await createCrudHandler('members', (m) => showToast(m), async () => 
+     await createCrudHandler('Atualizar membro', () => 
       supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId).select().single()
     )();
   };
   
   const handleDeleteMember = async (memberId: string) => {
-    // FIX: Make the operation function async to ensure it returns a Promise.
-    await createCrudHandler('members', (m) => showToast(m), async () => 
+    await createCrudHandler('Excluir membro', () => 
       supabase.from('members').delete().eq('id', memberId)
     )();
   };
 
   const handleAddTransaction = async (newTransactionData: Omit<Transaction, 'id'>) => {
-    // FIX: Make the operation function async to ensure it returns a Promise.
-    await createCrudHandler('transactions', (m) => showToast(m), async () => 
+    await createCrudHandler('Adicionar transação', () => 
       supabase.from('transactions').insert([camelToSnake(newTransactionData)]).select().single()
     )();
   };
 
   const handleDeleteTransaction = async (transactionId: string) => {
-    // FIX: Make the operation function async to ensure it returns a Promise.
-    await createCrudHandler('transactions', (m) => showToast(m), async () => 
+    await createCrudHandler('Excluir transação', () => 
       supabase.from('transactions').delete().eq('id', transactionId)
     )();
   };
   
   const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
-    // FIX: Make the operation function async to ensure it returns a Promise.
-    await createCrudHandler('events', (m) => showToast(m), async () => 
+    await createCrudHandler('Adicionar evento', () => 
       supabase.from('events').insert([camelToSnake(newEventData)]).select().single()
     )();
   };
 
   const handleUpdateEvent = async (eventId: string, updatedData: Omit<Event, 'id'>) => {
-    // FIX: Make the operation function async to ensure it returns a Promise.
-    await createCrudHandler('events', (m) => showToast(m), async () => 
+    await createCrudHandler('Atualizar evento', () => 
       supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId).select().single()
     )();
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-    // FIX: Make the operation function async to ensure it returns a Promise.
-     await createCrudHandler('events', (m) => showToast(m), async () => 
+     await createCrudHandler('Excluir evento', () => 
       supabase.from('events').delete().eq('id', eventId)
     )();
   };
@@ -225,8 +226,7 @@ const App: React.FC = () => {
       return;
     }
 
-    // FIX: Make the operation function async to ensure it returns a Promise.
-    await createCrudHandler('documents', (m) => showToast(m), async () => 
+    await createCrudHandler('Adicionar documento', () => 
       supabase.from('documents').insert([{ ...camelToSnake(docData), url: urlData.publicUrl }]).select().single()
     )();
   };
@@ -240,15 +240,13 @@ const App: React.FC = () => {
         }
     } catch(e) { console.error("Could not parse URL to delete from storage:", doc.url, e); }
     
-    // FIX: Make the operation function async to ensure it returns a Promise.
-    await createCrudHandler('documents', (m) => showToast(m), async () => 
+    await createCrudHandler('Excluir documento', () => 
       supabase.from('documents').delete().eq('id', doc.id)
     )();
   };
   
   const handleAddCommunication = async (newCommunicationData: Omit<Communication, 'id'>) => {
-    // FIX: Make the operation function async to ensure it returns a Promise.
-    await createCrudHandler('communications', (m) => showToast(m), async () => 
+    await createCrudHandler('Enviar comunicação', () => 
       supabase.from('communications').insert([camelToSnake(newCommunicationData)]).select().single()
     )();
   };
