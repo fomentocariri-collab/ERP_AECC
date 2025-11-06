@@ -36,15 +36,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
     } catch (error: any) {
         console.error("Erro ao buscar perfil do usuário:", error.message);
+        // This is a critical error, likely means RLS is blocking or profile is missing
+        // Logging out ensures we don't stay in a broken state
+        await supabase.auth.signOut();
         return null;
     }
   }, []);
   
   const fetchUsers = useCallback(async () => {
-    if (!currentUser || currentUser.role !== 'Super Admin') {
-      setUsers([]);
-      return;
-    }
+    // Permission check moved to RLS policy. We attempt to fetch regardless.
     try {
       const { data, error } = await supabase.from('profiles').select('*');
       if (error) throw error;
@@ -56,30 +56,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           avatarUrl: profile.avatar_url,
       })));
     } catch (error: any) {
-        console.error("Error fetching users:", error.message);
+        console.error("Error fetching users (might be due to permissions):", error.message);
+        setUsers([]); // Clear users if fetch fails
     }
-  }, [currentUser]);
+  }, []);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [currentUser, fetchUsers]);
-
-
+  // Central listener for auth state changes
   useEffect(() => {
     setLoading(true);
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const userProfile = await fetchUserProfile(session?.user ?? null);
-      setCurrentUser(userProfile);
-      setLoading(false);
-    };
-
-    getInitialSession();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         const userProfile = await fetchUserProfile(session?.user ?? null);
         setCurrentUser(userProfile);
+        setLoading(false);
       }
     );
 
@@ -88,23 +77,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [fetchUserProfile]);
 
+  // Fetch users only when the current user changes (and is an admin)
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'Super Admin') {
+      fetchUsers();
+    } else {
+      setUsers([]);
+    }
+  }, [currentUser, fetchUsers]);
 
   const login = useCallback(async (email: string, pass: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw new Error("Usuário ou senha inválidos.");
-    // onAuthStateChange will handle setting the user
+    // onAuthStateChange listener will handle setting the user profile
   }, []);
 
   const logout = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Error logging out:", error.message);
-    // onAuthStateChange will clear the user
+    setCurrentUser(null); // Immediately clear user for faster UI response
   }, []);
 
   const addUser = useCallback(async (userData: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => {
     const { data: { session: adminSession } } = await supabase.auth.getSession();
     if (!adminSession) throw new Error("Sessão de administrador necessária para esta operação.");
     
+    // Temporarily sign out the admin to create a new user
+    // This is a Supabase client-side limitation.
+    await supabase.auth.signOut();
+
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -116,27 +117,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
         }
     });
-
-    if (signUpError) {
-        // If signUp fails, the session is likely unchanged, but check just in case.
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (!currentSession) {
-             await supabase.auth.setSession(adminSession);
-        }
-        throw new Error(`Erro ao criar usuário: ${signUpError.message}`);
-    }
     
-    // Immediately restore the admin session. onAuthStateChange might fire with the new user,
-    // but this will correct it back to the admin.
+    // CRITICAL: Restore admin session immediately, regardless of signUp outcome
     const { error: sessionError } = await supabase.auth.setSession(adminSession);
-    if(sessionError) {
+    if (sessionError) {
         console.error("CRITICAL: Failed to restore admin session.", sessionError);
         await logout(); // Force logout for security
         throw new Error("Sua sessão expirou. Por favor, faça login novamente.");
     }
+
+    if (signUpError) {
+        throw new Error(`Erro ao criar usuário: ${signUpError.message}`);
+    }
     
     if (!signUpData.user) throw new Error("Não foi possível criar o usuário.");
     
+    // Refresh user list
     await fetchUsers();
   }, [fetchUsers, logout]);
   
@@ -149,6 +145,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      
      await fetchUsers();
      
+     // If updating the current user, refresh their profile in the context
      if (currentUser && currentUser.id === userId) {
         const { data: { user } } = await supabase.auth.getUser();
         const updatedProfile = await fetchUserProfile(user);
@@ -157,13 +154,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [currentUser, fetchUserProfile, fetchUsers]);
   
   const deleteUser = useCallback(async (userId: string) => {
+    // This is a placeholder as client-side user deletion is unsafe.
+    // It should be implemented with a server-side function (Supabase Edge Function).
     alert("Funcionalidade em desenvolvimento. A exclusão de usuários deve ser feita no painel do Supabase.");
     console.warn(`Request to delete user ${userId} blocked. Implement a secure server-side function.`);
   }, []);
 
   const value = { currentUser, loading, users, login, logout, addUser, updateUser, deleteUser };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

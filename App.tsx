@@ -136,14 +136,7 @@ const App: React.FC = () => {
     }
   }, [currentUser, fetchData]);
 
-  // FIX: Define a type for the generic function to avoid TSX parsing errors.
-  // The generic syntax `<K>(...)` inside useCallback was being parsed as a JSX tag.
-  type CreateCrudHandler = <T>(
-    operationName: string,
-    operation: () => Promise<{ data: T | null; error: any }>
-  ) => () => Promise<void>;
-
-  const createCrudHandler: CreateCrudHandler = useCallback(
+  const createCrudHandler = useCallback(
     (
       operationName: string,
       operation: () => Promise<{ data: any | null; error: any }>
@@ -163,49 +156,49 @@ const App: React.FC = () => {
   );
 
   const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
-    await createCrudHandler('Adicionar membro', () => 
+    await createCrudHandler('Adicionar membro', async () => 
       supabase.from('members').insert([camelToSnake(newMemberData)]).select().single()
     )();
   };
 
   const handleUpdateMember = async (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => {
-     await createCrudHandler('Atualizar membro', () => 
+     await createCrudHandler('Atualizar membro', async () => 
       supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId).select().single()
     )();
   };
   
   const handleDeleteMember = async (memberId: string) => {
-    await createCrudHandler('Excluir membro', () => 
+    await createCrudHandler('Excluir membro', async () => 
       supabase.from('members').delete().eq('id', memberId)
     )();
   };
 
   const handleAddTransaction = async (newTransactionData: Omit<Transaction, 'id'>) => {
-    await createCrudHandler('Adicionar transação', () => 
+    await createCrudHandler('Adicionar transação', async () => 
       supabase.from('transactions').insert([camelToSnake(newTransactionData)]).select().single()
     )();
   };
 
   const handleDeleteTransaction = async (transactionId: string) => {
-    await createCrudHandler('Excluir transação', () => 
+    await createCrudHandler('Excluir transação', async () => 
       supabase.from('transactions').delete().eq('id', transactionId)
     )();
   };
   
   const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
-    await createCrudHandler('Adicionar evento', () => 
+    await createCrudHandler('Adicionar evento', async () => 
       supabase.from('events').insert([camelToSnake(newEventData)]).select().single()
     )();
   };
 
   const handleUpdateEvent = async (eventId: string, updatedData: Omit<Event, 'id'>) => {
-    await createCrudHandler('Atualizar evento', () => 
+    await createCrudHandler('Atualizar evento', async () => 
       supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId).select().single()
     )();
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-     await createCrudHandler('Excluir evento', () => 
+     await createCrudHandler('Excluir evento', async () => 
       supabase.from('events').delete().eq('id', eventId)
     )();
   };
@@ -226,7 +219,7 @@ const App: React.FC = () => {
       return;
     }
 
-    await createCrudHandler('Adicionar documento', () => 
+    await createCrudHandler('Adicionar documento', async () => 
       supabase.from('documents').insert([{ ...camelToSnake(docData), url: urlData.publicUrl }]).select().single()
     )();
   };
@@ -240,13 +233,13 @@ const App: React.FC = () => {
         }
     } catch(e) { console.error("Could not parse URL to delete from storage:", doc.url, e); }
     
-    await createCrudHandler('Excluir documento', () => 
+    await createCrudHandler('Excluir documento', async () => 
       supabase.from('documents').delete().eq('id', doc.id)
     )();
   };
   
   const handleAddCommunication = async (newCommunicationData: Omit<Communication, 'id'>) => {
-    await createCrudHandler('Enviar comunicação', () => 
+    await createCrudHandler('Enviar comunicação', async () => 
       supabase.from('communications').insert([camelToSnake(newCommunicationData)]).select().single()
     )();
   };
