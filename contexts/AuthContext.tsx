@@ -19,63 +19,67 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
   const [users, setUsers] = useState<User[]>([]);
 
-  const setUserProfile = useCallback(async (session: Session | null) => {
-    if (!session?.user) {
+  const fetchUserProfile = useCallback(async (user: any) => {
+    if (!user) {
       setCurrentUser(null);
-      return;
+      return null;
     }
 
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('id, name, email, role, avatar_url')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
     
-    if (error || !profile) {
-      console.error("Erro ao buscar perfil do usuário:", error?.message);
+    if (error) {
+      console.error("Erro ao buscar perfil do usuário:", error.message);
       if (currentUser) {
-          alert("Falha ao buscar seu perfil de usuário. Isso geralmente é causado por uma política de segurança (RLS) na tabela 'profiles' que impede a leitura. Verifique as permissões no painel do Supabase. Você será desconectado.");
+          alert("Falha ao buscar seu perfil de usuário. Isso geralmente é causado por uma política de segurança (RLS) na tabela 'profiles'. Verifique as permissões no painel do Supabase. Você será desconectado.");
       }
-      
       await supabase.auth.signOut();
       setCurrentUser(null);
-      return;
+      return null;
     }
     
-    setCurrentUser({
+    const userProfile = {
       id: profile.id,
       email: profile.email,
       name: profile.name,
       role: profile.role,
       avatarUrl: profile.avatar_url,
-    });
-  }, []);
+    };
+    setCurrentUser(userProfile);
+    return userProfile;
+  }, [currentUser]);
+
 
   useEffect(() => {
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      await setUserProfile(session);
+      setSession(session);
+      await fetchUserProfile(session?.user ?? null);
       setLoading(false);
     };
 
     getInitialSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-         // Only update state if the user ID has actually changed
-         if (session?.user?.id !== currentUser?.id) {
-            await setUserProfile(session);
-         }
+      (_event, session) => {
+        setSession(session);
       }
     );
 
     return () => {
       subscription?.unsubscribe();
     };
-    // currentUser is removed from dependency array to prevent loop
-  }, [setUserProfile]);
+  }, [fetchUserProfile]);
+
+  useEffect(() => {
+     fetchUserProfile(session?.user ?? null);
+  },[session, fetchUserProfile]);
 
 
   const fetchUsers = useCallback(async () => {
@@ -119,8 +123,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const addUser = async (userData: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { session: adminSession } } = await supabase.auth.getSession();
+    if (!adminSession) {
         throw new Error("Sessão de administrador não encontrada. Por favor, faça login novamente.");
     }
 
@@ -137,7 +141,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
     
     // Restore the admin session immediately after the sign-up call
-    const { error: sessionError } = await supabase.auth.setSession(session);
+    const { error: sessionError } = await supabase.auth.setSession(adminSession);
     if (sessionError) {
         console.error("Error restoring admin session:", sessionError);
         alert("Erro crítico: A sessão do administrador não pôde ser restaurada. Por favor, atualize a página.");
@@ -181,7 +185,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      // If the updated user is the current user, refresh their profile
      if (currentUser && currentUser.id === userId) {
         const { data: { session } } = await supabase.auth.getSession();
-        await setUserProfile(session);
+        await fetchUserProfile(session?.user ?? null);
      }
   };
   
