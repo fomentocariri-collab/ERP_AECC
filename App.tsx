@@ -103,7 +103,11 @@ const App: React.FC = () => {
         }
     };
 
-    fetchData();
+    if (currentUser) {
+      fetchData();
+    } else {
+      setAppLoading(false);
+    }
   }, [currentUser]);
 
 

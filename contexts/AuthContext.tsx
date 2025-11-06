@@ -39,29 +39,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   useEffect(() => {
-    const getInitialSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
         const userProfile = await fetchUserProfile(session?.user ?? null);
         setCurrentUser(userProfile);
         setLoading(false);
+      }
+    );
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (_event, session) => {
-            const userProfile = await fetchUserProfile(session?.user ?? null);
-            setCurrentUser(userProfile);
-            // Ensure loading is false after the first check
-            if (loading) setLoading(false);
-          }
-        );
-
-        return () => {
-          subscription?.unsubscribe();
-        };
+    return () => {
+      subscription?.unsubscribe();
     };
-    
-    getInitialSession();
-
-  }, [fetchUserProfile, loading]);
+  }, [fetchUserProfile]);
 
 
   const fetchUsers = useCallback(async () => {
@@ -98,6 +87,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
+    setCurrentUser(null);
   }, []);
 
   const addUser = useCallback(async (userData: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => {
@@ -116,13 +106,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     });
 
+    // Restore the admin session
     await supabase.auth.setSession(adminSession);
     
     if (signUpError) throw new Error(`Erro ao criar usuário: ${signUpError.message}`);
     if (!signUpData.user) throw new Error("Não foi possível criar o usuário.");
     
     await fetchUsers();
-    alert('Usuário adicionado com sucesso!');
   }, [fetchUsers]);
   
   const updateUser = useCallback(async (userId: string, data: Partial<User>) => {
@@ -135,6 +125,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      await fetchUsers();
      
      if (currentUser && currentUser.id === userId) {
+        // Force a re-fetch of the current user's profile
         const { data: { user } } = await supabase.auth.getUser();
         const updatedProfile = await fetchUserProfile(user);
         setCurrentUser(updatedProfile);
@@ -142,13 +133,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [currentUser, fetchUserProfile, fetchUsers]);
   
   const deleteUser = useCallback(async (userId: string) => {
+    // This is insecure and should be done in a server-side environment.
+    // For this internal tool, it's a placeholder.
     alert("A exclusão de usuários deve ser feita através de uma função de servidor segura (Supabase Edge Function) ou diretamente no painel do Supabase para evitar riscos de segurança.");
     console.warn(`Request to delete user ${userId} blocked on client-side.`);
   }, []);
 
   const value = { currentUser, loading, users, login, logout, addUser, updateUser, deleteUser };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
