@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../supabaseClient';
-import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -34,8 +34,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     if (error) {
       console.error("Erro ao buscar perfil do usuário:", error.message);
-      // Don't show alert here, it can be annoying on initial load if RLS is strict.
-      // The calling function will handle user state.
       return null;
     }
     
@@ -101,15 +99,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (error) {
         console.error('Error logging out:', error.message);
     }
-    setCurrentUser(null);
+    // setCurrentUser is handled by onAuthStateChange
   }, []);
 
   const addUser = async (userData: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => {
+    // Save the current admin session to restore it later
     const { data: { session: adminSession } } = await supabase.auth.getSession();
     if (!adminSession) {
         throw new Error("Sessão de administrador não encontrada. Por favor, faça login novamente.");
     }
     
+    // Sign up the new user
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -121,18 +121,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
         }
     });
-    
+
+    // IMPORTANT: Restore the admin session immediately
     const { error: sessionError } = await supabase.auth.setSession(adminSession);
     if (sessionError) {
         console.error("Error restoring admin session:", sessionError);
         alert("Erro crítico: A sessão do administrador não pôde ser restaurada. Por favor, atualize a página.");
-        logout();
+        logout(); // Force a full re-auth if session is lost
         return;
     }
     
-    const adminProfile = await fetchUserProfile(adminSession.user);
-    setCurrentUser(adminProfile);
-
     if (signUpError) {
         throw new Error(`Erro ao criar usuário: ${signUpError.message}`);
     }
@@ -141,6 +139,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error("Não foi possível criar o usuário. Tente novamente.");
     }
     
+    // Refresh the users list
     await fetchUsers();
     alert('Usuário adicionado com sucesso!');
   };
@@ -161,8 +160,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      }
      
      await fetchUsers();
+     // If the updated user is the current user, update their context state
      if (currentUser && currentUser.id === userId) {
-        const updatedProfile = { ...currentUser, ...data };
+        const updatedProfile = await fetchUserProfile(supabase.auth.getUser() as unknown as SupabaseUser);
         setCurrentUser(updatedProfile);
      }
   };
