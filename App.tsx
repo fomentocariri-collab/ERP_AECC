@@ -250,7 +250,7 @@ const App: React.FC = () => {
       case 'Dashboard':
         return <Dashboard members={members} transactions={transactions} events={events} />;
       case 'Members':
-        return <Members members={members} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} userRole={currentUser.role} />;
+        return <Members members={members} transactions={transactions} events={events} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} userRole={currentUser.role} />;
       case 'Financial':
         return <Financial transactions={transactions} members={members} onAddTransaction={handleAddTransaction} onDeleteTransaction={handleDeleteTransaction} userRole={currentUser.role} />;
       case 'Events':

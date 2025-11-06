@@ -1,1 +1,2265 @@
-E pela duocen´tesima enesima vez porrrrrrrraaaaaa! Onde está a única coisa que que precisa mandar: o código XML completo, com todos os arquivos do projeto, na versão final e estável. Novamente, aplique isso como praxe para as proximas conversações
+<?xml version="1.0" encoding="UTF-8"?>
+<changes>
+  <change>
+    <file>index.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import { AuthProvider } from './contexts/AuthContext';
+
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
+}
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  </React.StrictMode>
+);]]></content>
+  </change>
+  <change>
+    <file>metadata.json</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[{
+  "name": "GERENCIADOR_AECC",
+  "description": "Gerenciamento da Associação Feira Cariri Criativo",
+  "requestFramePermissions": []
+}]]></content>
+  </change>
+  <change>
+    <file>index.html</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AssociaçãoPRO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              'primary': { // Vermelho Vinho
+                '50': '#fdf4f4',
+                '100': '#fbe9e9',
+                '200': '#f6d5d5',
+                '300': '#efb7b7',
+                '400': '#e38f8f',
+                '500': '#d36767',
+                '600': '#b55555',
+                '700': '#a43a3a',
+                '800': '#8c2d2d',
+                '900': '#762929',
+                '950': '#401313',
+              },
+              'secondary': { // Verde Escuro
+                '50': '#f0f6f4',
+                '100': '#ddebe6',
+                '200': '#bbd7cd',
+                '300': '#99c3b4',
+                '400': '#5f9e86',
+                '500': '#43846c',
+                '600': '#3a7963',
+                '700': '#2d5e4d',
+                '800': '#244b3e',
+                '900': '#1e3e33',
+                '950': '#11241d',
+              }
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^18.2.0/",
+    "react": "https://aistudiocdn.com/react@^18.2.0",
+    "react/": "https://aistudiocdn.com/react@^18.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.552.0",
+    "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+  }
+}
+</script>
+</head>
+  <body class="bg-gray-100 dark:bg-gray-900 font-sans">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>]]></content>
+  </change>
+  <change>
+    <file>App.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState, useEffect, useCallback } from 'react';
+import { Sidebar } from './components/Sidebar';
+import { Header } from './components/Header';
+import { Dashboard } from './pages/Dashboard';
+import { Members } from './pages/Members';
+import { Financial } from './pages/Financial';
+import { Events } from './pages/Events';
+import { Documents } from './pages/Documents';
+import { Communications } from './pages/Communications';
+import { Settings } from './pages/Settings';
+import { Page, Member, Transaction, Event, Document, Communication } from './types';
+import { useAuth } from './contexts/AuthContext';
+import { Login } from './components/Login';
+import { supabase } from './supabaseClient';
+import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+
+// Toast Notification Component
+const Toast: React.FC<{ message: string; type: 'success' | 'error'; onClose: () => void }> = ({ message, type, onClose }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 5000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const isSuccess = type === 'success';
+  const bgColor = isSuccess ? 'bg-green-100 dark:bg-green-900/80' : 'bg-red-100 dark:bg-red-900/80';
+  const borderColor = isSuccess ? 'border-green-400 dark:border-green-700' : 'border-red-400 dark:border-red-700';
+  const textColor = isSuccess ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200';
+  const Icon = isSuccess ? CheckCircle2 : AlertCircle;
+
+  return (
+    <div className={`fixed top-20 right-6 p-4 rounded-lg shadow-2xl border ${bgColor} ${borderColor} ${textColor} flex items-center gap-3 z-50`}>
+      <Icon className="h-5 w-5" />
+      <p className="font-medium text-sm">{message}</p>
+    </div>
+  );
+};
+
+// Helper function to convert object keys from snake_case to camelCase
+const snakeToCamel = (obj: any): any => {
+  if (obj === null || typeof obj !== 'object' || obj instanceof Date) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(v => snakeToCamel(v));
+  }
+  return Object.keys(obj).reduce((acc, key) => {
+    const camelKey = key.replace(/([-_][a-z])/g, (group) =>
+      group.toUpperCase().replace('-', '').replace('_', '')
+    );
+    acc[camelKey] = snakeToCamel(obj[key]);
+    return acc;
+  }, {} as { [key: string]: any });
+};
+
+// Helper function to convert object keys from camelCase to snake_case
+const camelToSnake = (obj: any): any => {
+  if (obj === null || typeof obj !== 'object' || obj instanceof Date) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(v => camelToSnake(v));
+  }
+  return Object.keys(obj).reduce((acc, key) => {
+    const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    acc[snakeKey] = camelToSnake(obj[key]);
+    return acc;
+  }, {} as { [key: string]: any });
+};
+
+const App: React.FC = () => {
+  const { currentUser, loading, users, addUser, updateUser, deleteUser } = useAuth();
+  const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
+  
+  const [members, setMembers] = useState<Member[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [communications, setCommunications] = useState<Communication[]>([]);
+  const [appLoading, setAppLoading] = useState(true);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+  };
+  
+  const generateErrorMessage = (action: string, error: any) => {
+    return `Erro ao ${action}: ${error.message}. Verifique as permissões (RLS) no Supabase.`;
+  };
+
+  const fetchData = useCallback(async () => {
+      if (!currentUser) {
+          setAppLoading(false);
+          return;
+      };
+      
+      setAppLoading(true);
+      try {
+        const [membersRes, transactionsRes, eventsRes, documentsRes, communicationsRes] = await Promise.all([
+          supabase.from('members').select('*').order('name', { ascending: true }),
+          supabase.from('transactions').select('*').order('date', { ascending: false }),
+          supabase.from('events').select('*').order('date', { ascending: false }),
+          supabase.from('documents').select('*').order('upload_date', { ascending: false }),
+          supabase.from('communications').select('*').order('sent_at', { ascending: false })
+        ]);
+  
+        // Check for errors in all promises
+        const errors = [membersRes, transactionsRes, eventsRes, documentsRes, communicationsRes].map(res => res.error).filter(Boolean);
+        if (errors.length > 0) {
+          throw new Error(errors.map(e => e!.message).join(', '));
+        }
+  
+        setMembers(snakeToCamel(membersRes.data) as Member[]);
+        setTransactions(snakeToCamel(transactionsRes.data) as Transaction[]);
+        setEvents(snakeToCamel(eventsRes.data) as Event[]);
+        setDocuments(snakeToCamel(documentsRes.data) as Document[]);
+        setCommunications(snakeToCamel(communicationsRes.data) as Communication[]);
+  
+      } catch (error: any) {
+        console.error("Error fetching data:", error.message);
+        showToast(`Falha ao carregar dados: ${error.message}`, 'error');
+      } finally {
+        setAppLoading(false);
+      }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchData();
+    } else {
+      setMembers([]);
+      setTransactions([]);
+      setEvents([]);
+      setDocuments([]);
+      setCommunications([]);
+      setAppLoading(false);
+    }
+  }, [currentUser, fetchData]);
+
+  const createCrudHandler = useCallback(
+    (
+      operationName: string,
+      operation: () => Promise<{ data: any | null; error: any }>
+    ) => async () => {
+      try {
+        const { error } = await operation();
+        if (error) {
+          throw error;
+        }
+        showToast(`${operationName} com sucesso!`);
+        await fetchData(); // Refresh all data to ensure consistency
+      } catch (error: any) {
+        showToast(generateErrorMessage(operationName.toLowerCase(), error), 'error');
+      }
+    },
+    [fetchData] 
+  );
+
+  const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
+    await createCrudHandler('Adicionar membro', async () => 
+      supabase.from('members').insert([camelToSnake(newMemberData)]).select().single()
+    )();
+  };
+
+  const handleUpdateMember = async (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => {
+     await createCrudHandler('Atualizar membro', async () => 
+      supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId).select().single()
+    )();
+  };
+  
+  const handleDeleteMember = async (memberId: string) => {
+    await createCrudHandler('Excluir membro', async () => 
+      supabase.from('members').delete().eq('id', memberId)
+    )();
+  };
+
+  const handleAddTransaction = async (newTransactionData: Omit<Transaction, 'id'>) => {
+    await createCrudHandler('Adicionar transação', async () => 
+      supabase.from('transactions').insert([camelToSnake(newTransactionData)]).select().single()
+    )();
+  };
+
+  const handleDeleteTransaction = async (transactionId: string) => {
+    await createCrudHandler('Excluir transação', async () => 
+      supabase.from('transactions').delete().eq('id', transactionId)
+    )();
+  };
+  
+  const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
+    await createCrudHandler('Adicionar evento', async () => 
+      supabase.from('events').insert([camelToSnake(newEventData)]).select().single()
+    )();
+  };
+
+  const handleUpdateEvent = async (eventId: string, updatedData: Omit<Event, 'id'>) => {
+    await createCrudHandler('Atualizar evento', async () => 
+      supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId).select().single()
+    )();
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+     await createCrudHandler('Excluir evento', async () => 
+      supabase.from('events').delete().eq('id', eventId)
+    )();
+  };
+
+  const handleAddDocument = async (docData: Omit<Document, 'id' | 'url'>, file: File) => {
+    const filePath = `${currentUser!.id}/${new Date().getTime()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
+
+    if (uploadError) {
+      showToast(generateErrorMessage('carregar arquivo', uploadError), 'error');
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
+    if (!urlData.publicUrl) {
+      showToast("Não foi possível obter a URL pública do arquivo.", 'error');
+      await supabase.storage.from('documents').remove([filePath]);
+      return;
+    }
+
+    await createCrudHandler('Adicionar documento', async () => 
+      supabase.from('documents').insert([{ ...camelToSnake(docData), url: urlData.publicUrl }]).select().single()
+    )();
+  };
+
+  const handleDeleteDocument = async (doc: Document) => {
+    try {
+        const url = new URL(doc.url);
+        const filePath = url.pathname.split('/documents/')[1];
+        if (filePath) {
+            await supabase.storage.from('documents').remove([decodeURIComponent(filePath)]);
+        }
+    } catch(e) { console.error("Could not parse URL to delete from storage:", doc.url, e); }
+    
+    await createCrudHandler('Excluir documento', async () => 
+      supabase.from('documents').delete().eq('id', doc.id)
+    )();
+  };
+  
+  const handleAddCommunication = async (newCommunicationData: Omit<Communication, 'id'>) => {
+    await createCrudHandler('Enviar comunicação', async () => 
+      supabase.from('communications').insert([camelToSnake(newCommunicationData)]).select().single()
+    )();
+  };
+
+  const renderPage = () => {
+    if (!currentUser) return null;
+    switch (currentPage) {
+      case 'Dashboard':
+        return <Dashboard members={members} transactions={transactions} events={events} />;
+      case 'Members':
+        return <Members members={members} transactions={transactions} events={events} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} userRole={currentUser.role} />;
+      case 'Financial':
+        return <Financial transactions={transactions} members={members} onAddTransaction={handleAddTransaction} onDeleteTransaction={handleDeleteTransaction} userRole={currentUser.role} />;
+      case 'Events':
+        return <Events events={events} onAddEvent={handleAddEvent} onUpdateEvent={handleUpdateEvent} onDeleteEvent={handleDeleteEvent} userRole={currentUser.role} />;
+      case 'Documents':
+        return <Documents documents={documents} onAddDocument={handleAddDocument} onDeleteDocument={handleDeleteDocument} userRole={currentUser.role} />;
+      case 'Communications':
+        return <Communications members={members} communications={communications} onAddCommunication={handleAddCommunication} userRole={currentUser.role} />;
+      case 'Settings':
+        return <Settings currentUser={currentUser} users={users} onUpdateUser={updateUser} onAddUser={addUser} onDeleteUser={deleteUser} showToast={showToast} />;
+      default:
+        return <Dashboard members={members} transactions={transactions} events={events} />;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <Loader2 className="h-12 w-12 animate-spin text-primary-700" />
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return <Login />;
+  }
+
+  return (
+    <>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} user={currentUser} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header title={currentPage} />
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
+            {appLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-12 w-12 animate-spin text-primary-700" />
+              </div>
+            ) : (
+              renderPage()
+            )}
+          </main>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default App;]]></content>
+  </change>
+  <change>
+    <file>types.ts</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[export type Page = 'Dashboard' | 'Members' | 'Financial' | 'Events' | 'Documents' | 'Communications' | 'Settings';
+
+export type UserRole = 'Super Admin' | 'Financeiro' | 'Associado';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatarUrl: string;
+}
+
+export type MemberRole = 'Diretoria' | 'Membro Fundador' | 'Associado';
+
+export interface Member {
+  id: string;
+  name: string;
+  email: string;
+  status: 'Active' | 'Inactive' | 'Pending';
+  admissionDate: string;
+  avatarUrl: string;
+  cpf: string;
+  address: string;
+  city: string;
+  state: string; // UF
+  phone: string;
+  birthDate: string | null;
+  role: MemberRole;
+}
+
+export type EventType = 'Feira' | 'Reunião Ordinária' | 'Encontro' | 'Oficina' | 'Treinamento' | 'Outros';
+
+export interface Event {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  description: string;
+  type: EventType;
+}
+
+export interface Transaction {
+  id: string;
+  description: string;
+  amount: number;
+  type: 'Income' | 'Expense';
+  date: string;
+  memberId?: string;
+  memberName?: string;
+}
+
+export type DocumentType = 'Statute' | 'Meeting Minutes' | 'Report' | 'Other';
+
+export interface Document {
+  id: string;
+  name: string;
+  type: DocumentType;
+  uploadDate: string;
+  size: number; // in bytes
+  url: string;
+}
+
+export interface Communication {
+    id: string;
+    subject: string;
+    message: string;
+    recipients: string;
+    sentAt: string;
+}]]></content>
+  </change>
+  <change>
+    <file>constants.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[// constants.tsx
+// Arquivo ajustado para migração — sem dados Base64 nem imagens pesadas.
+
+export const API_URL = "https://seu-endpoint-aqui.supabase.co";
+export const SUPABASE_KEY = "chave-publica-ou-placeholder";
+export const PROJECT_NAME = "CaririBancoDoFuturo";
+export const VERSION = "1.0.0";
+
+// Placeholder para o logotipo (imagem será adicionada após a migração)
+export const LOGO_BASE64 = "[PLACEHOLDER_LOGO]";
+
+// Cores e identidade visual
+export const THEME = {
+  primary: "#1E88E5",
+  secondary: "#1565C0",
+  accent: "#42A5F5",
+  background: "#F5F5F5",
+  text: "#212121",
+};
+
+// Mensagens globais e padrões de validação
+export const MESSAGES = {
+  error: "Ocorreu um erro. Tente novamente.",
+  success: "Operação concluída com sucesso!",
+  loginRequired: "Você precisa estar autenticado para acessar esta área.",
+  invalidCredentials: "Usuário ou senha inválidos.",
+};
+
+// Configurações de tempo e formato
+export const DATE_FORMAT = "DD/MM/YYYY";
+export const TIMEZONE = "America/Fortaleza";
+
+// Permissões padrão
+export const DEFAULT_ROLES = ["admin", "user", "guest"];
+
+// Configurações de cache e sessão
+export const CACHE_KEYS = {
+  userSession: "cariri_user_session",
+  lastSync: "cariri_last_sync",
+};]]></content>
+  </change>
+  <change>
+    <file>components/Sidebar.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState } from 'react';
+import { Page, User } from '../types';
+import { Home, Users, DollarSign, Calendar, FileText, Send, Settings, ChevronFirst, ChevronLast, LogOut } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { LOGO_BASE64 } from '../constants';
+
+const NAV_ITEMS = [
+  { name: 'Dashboard', icon: <Home size={20}/> },
+  { name: 'Members', icon: <Users size={20}/> },
+  { name: 'Financial', icon: <DollarSign size={20}/> },
+  { name: 'Events', icon: <Calendar size={20}/> },
+  { name: 'Documents', icon: <FileText size={20}/> },
+  { name: 'Communications', icon: <Send size={20}/> },
+  { name: 'Settings', icon: <Settings size={20}/> },
+];
+
+interface SidebarProps {
+  currentPage: Page;
+  setCurrentPage: (page: Page) => void;
+  user: User;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, user }) => {
+  const [expanded, setExpanded] = useState(true);
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  };
+
+  return (
+    <aside className="h-screen sticky top-0">
+      <nav className="h-full flex flex-col bg-white dark:bg-gray-800 border-r dark:border-gray-700 shadow-sm">
+        <div className="p-4 pb-2 flex justify-between items-center">
+          {LOGO_BASE64 !== "[PLACEHOLDER_LOGO]" ? (
+            <img src={LOGO_BASE64} alt="Logo" className={`overflow-hidden transition-all ${expanded ? 'w-32' : 'w-0'}`} />
+          ) : (
+            <div className={`overflow-hidden transition-all font-bold text-lg ${expanded ? 'w-32' : 'w-0'}`}>Associação</div>
+          )}
+          <button onClick={() => setExpanded(curr => !curr)} className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+            {expanded ? <ChevronFirst /> : <ChevronLast />}
+          </button>
+        </div>
+
+        <ul className="flex-1 px-3">
+          {NAV_ITEMS.map(item => (
+            <li
+              key={item.name}
+              onClick={() => setCurrentPage(item.name as Page)}
+              className={`
+                relative flex items-center py-2 px-3 my-1
+                font-medium rounded-md cursor-pointer
+                transition-colors group
+                ${currentPage === item.name
+                  ? 'bg-gradient-to-tr from-primary-200 to-primary-100 text-primary-800 dark:from-primary-900 dark:to-primary-800 dark:text-white'
+                  : 'hover:bg-primary-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                }
+              `}
+            >
+              {
+                // @ts-ignore
+                React.cloneElement(item.icon, { currentPage: currentPage === item.name })
+              }
+              <span className={`overflow-hidden transition-all ${expanded ? 'w-52 ml-3' : 'w-0'}`}>
+                {item.name}
+              </span>
+              {!expanded && (
+                <div className={`
+                  absolute left-full rounded-md px-2 py-1 ml-6
+                  bg-primary-100 text-primary-800 text-sm
+                  invisible opacity-20 -translate-x-3 transition-all
+                  group-hover:visible group-hover:opacity-100 group-hover:translate-x-0
+                  dark:bg-primary-900 dark:text-primary-200
+                `}>
+                  {item.name}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        <div className="border-t dark:border-gray-700 flex flex-col p-3">
+          <div className="flex items-center">
+            <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full" />
+            <div className={`flex justify-between items-center overflow-hidden transition-all ${ expanded ? 'w-52 ml-3' : 'w-0' }`}>
+              <div className="leading-4">
+                <h4 className="font-bold truncate">{user.name}</h4>
+                <span className="text-xs text-gray-600 dark:text-gray-400">{user.role}</span>
+              </div>
+            </div>
+          </div>
+          <button 
+            onClick={handleLogout} 
+            className={`
+              relative flex items-center justify-start w-full py-2 px-3 mt-4
+              font-medium rounded-md cursor-pointer
+              transition-colors group
+              bg-gray-100 hover:bg-red-100 text-gray-800 hover:text-red-700
+              dark:bg-gray-700 dark:hover:bg-red-900/50 dark:text-gray-300 dark:hover:text-red-300
+            `}
+          >
+            <LogOut size={20} />
+            <span className={`overflow-hidden transition-all whitespace-nowrap ${expanded ? 'w-auto ml-3' : 'w-0'}`}>Sair</span>
+          </button>
+        </div>
+      </nav>
+    </aside>
+  );
+};]]></content>
+  </change>
+  <change>
+    <file>components/Header.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState, useEffect } from 'react';
+import { Search, Bell, Sun, Moon } from 'lucide-react';
+
+interface HeaderProps {
+  title: string;
+}
+
+export const Header: React.FC<HeaderProps> = ({ title }) => {
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        return savedTheme === 'dark';
+      }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
+  return (
+    <header className="sticky top-0 h-16 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700/50 flex items-center justify-between px-6 z-10">
+      <h1 className="text-2xl font-bold text-primary-800 dark:text-primary-200">{title}</h1>
+      <div className="flex items-center gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Search..."
+            className="pl-10 pr-4 py-2 w-full rounded-full bg-gray-100 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+        <button
+          onClick={toggleDarkMode}
+          className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+          aria-label="Toggle Dark Mode"
+        >
+          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+        <button className="relative p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+          <Bell size={20} />
+          <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500"></span>
+        </button>
+      </div>
+    </header>
+  );
+};]]></content>
+  </change>
+  <change>
+    <file>pages/Dashboard.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React from 'react';
+import { Users, UserCheck, Calendar, DollarSign, UserX, CalendarOff } from 'lucide-react';
+import { Member, Transaction, Event } from '../types';
+
+const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; }> = ({ icon, title, value }) => (
+  <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex items-start justify-between border border-gray-200 dark:border-gray-700">
+    <div>
+      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+      <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
+    </div>
+    <div className="bg-primary-100 dark:bg-primary-900/50 p-3 rounded-full">
+      {icon}
+    </div>
+  </div>
+);
+
+interface DashboardProps {
+  members: Member[];
+  transactions: Transaction[];
+  events: Event[];
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ members, transactions, events }) => {
+  const activeMembers = members.filter(m => m.status === 'Active').length;
+  const monthlyIncome = transactions
+    .filter(t => t.type === 'Income')
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  return (
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard icon={<Users className="text-primary-700 dark:text-primary-300"/>} title="Total de Membros" value={members.length.toString()} />
+        <StatCard icon={<UserCheck className="text-primary-700 dark:text-primary-300"/>} title="Membros Ativos" value={activeMembers.toString()} />
+        <StatCard icon={<Calendar className="text-primary-700 dark:text-primary-300"/>} title="Próximos Eventos" value={events.length.toString()} />
+        <StatCard icon={<DollarSign className="text-primary-700 dark:text-primary-300"/>} title="Receita do Mês" value={`R$ ${monthlyIncome.toFixed(2)}`} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold mb-4">Membros Recentes</h2>
+          <div className="space-y-4">
+            {members.length > 0 ? members.slice(-4).reverse().map(member => (
+              <div key={member.id} className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <img src={member.avatarUrl} alt={member.name} className="w-10 h-10 rounded-full"/>
+                  <div>
+                    <p className="font-semibold">{member.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{member.email}</p>
+                  </div>
+                </div>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{member.admissionDate}</span>
+              </div>
+            )) : (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <UserX size={40} className="mx-auto mb-2" />
+                <p>Nenhum membro cadastrado.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold mb-4">Próximos Eventos</h2>
+          <div className="space-y-4">
+            {events.length > 0 ? events.slice(-3).reverse().map(event => (
+                <div key={event.id} className="border-l-4 border-primary-500 pl-4 py-1">
+                    <p className="font-semibold text-sm">{event.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{event.date} - {event.location}</p>
+                </div>
+            )) : (
+                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <CalendarOff size={40} className="mx-auto mb-2" />
+                    <p>Nenhum evento agendado.</p>
+                  </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};]]></content>
+  </change>
+  <change>
+    <file>pages/Members.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState, useMemo } from 'react';
+import { PlusCircle, Search, UserX, Edit, Trash2 } from 'lucide-react';
+import { Member, Transaction, Event, UserRole } from '../types';
+import { AddMemberModal } from '../components/AddMemberModal';
+import { MemberDetailModal } from '../components/MemberDetailModal';
+
+const getStatusBadge = (status: Member['status']) => {
+  switch (status) {
+    case 'Active':
+      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+    case 'Inactive':
+      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+    case 'Pending':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+  }
+};
+
+interface MembersProps {
+  members: Member[];
+  transactions: Transaction[];
+  events: Event[];
+  onAddMember: (newMember: Omit<Member, 'id'>) => Promise<void>;
+  onUpdateMember: (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => Promise<void>;
+  onDeleteMember: (memberId: string) => Promise<void>;
+  userRole: UserRole;
+}
+
+export const Members: React.FC<MembersProps> = ({ members, transactions, events, onAddMember, onUpdateMember, onDeleteMember, userRole }) => {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  
+  const canPerformActions = userRole === 'Super Admin';
+
+  const filteredMembers = useMemo(() => {
+    return members.filter(member => {
+      const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            member.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'All' || member.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [members, searchTerm, statusFilter]);
+
+  const handleOpenAddModal = () => {
+    setEditingMember(null);
+    setIsAddModalOpen(true);
+  };
+
+  const handleOpenEditModal = (member: Member) => {
+    setEditingMember(member);
+    setIsAddModalOpen(true);
+  };
+  
+  const handleOpenDetailModal = (member: Member) => {
+    setSelectedMember(member);
+    setIsDetailModalOpen(true);
+  }
+
+  const handleCloseModal = () => {
+    setIsAddModalOpen(false);
+    setIsDetailModalOpen(false);
+    setEditingMember(null);
+    setSelectedMember(null);
+  };
+
+  const handleSaveMember = async (data: Omit<Member, 'id'>) => {
+    if (editingMember) {
+      await onUpdateMember(editingMember.id, data);
+    } else {
+      await onAddMember(data);
+    }
+  };
+  
+  const handleDelete = async (memberId: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este membro? Esta ação não pode ser desfeita.')) {
+        await onDeleteMember(memberId);
+    }
+  };
+
+  return (
+    <>
+      <AddMemberModal
+        isOpen={isAddModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSaveMember}
+        existingMember={editingMember}
+      />
+      {selectedMember && (
+        <MemberDetailModal
+            isOpen={isDetailModalOpen}
+            onClose={handleCloseModal}
+            member={selectedMember}
+            transactions={transactions.filter(t => t.memberId === selectedMember.id)}
+            events={events} // Pass all events, filtering will happen inside
+        />
+      )}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+          <h2 className="text-xl font-semibold">Lista de Membros ({filteredMembers.length})</h2>
+          {canPerformActions && (
+            <button
+              onClick={handleOpenAddModal}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800"
+            >
+              <PlusCircle size={16} /> Adicionar Membro
+            </button>
+          )}
+        </div>
+
+        {/* Filter and Search Bar */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Buscar por nome ou email..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="All">Todos os Status</option>
+            <option value="Active">Ativos</option>
+            <option value="Inactive">Inativos</option>
+            <option value="Pending">Pendentes</option>
+          </select>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+              <tr>
+                <th scope="col" className="px-6 py-3">Nome</th>
+                <th scope="col" className="px-6 py-3">Email</th>
+                <th scope="col" className="px-6 py-3">Data de Admissão</th>
+                <th scope="col" className="px-6 py-3">Status</th>
+                {canPerformActions && <th scope="col" className="px-6 py-3 text-right">Ações</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredMembers.length > 0 ? (
+                filteredMembers.map((member) => (
+                  <tr key={member.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer" onClick={() => handleOpenDetailModal(member)}>
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap flex items-center gap-3">
+                      <img src={member.avatarUrl} alt={member.name} className="w-8 h-8 rounded-full object-cover" />
+                      {member.name}
+                    </td>
+                    <td className="px-6 py-4">{member.email}</td>
+                    <td className="px-6 py-4">{member.admissionDate}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(member.status)}`}>
+                        {member.status}
+                      </span>
+                    </td>
+                    {canPerformActions && (
+                       <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                         <button onClick={() => handleOpenEditModal(member)} className="p-2 text-gray-500 hover:text-blue-600"><Edit size={16} /></button>
+                         <button onClick={() => handleDelete(member.id)} className="p-2 text-gray-500 hover:text-primary-700 dark:hover:text-primary-500"><Trash2 size={16} /></button>
+                       </td>
+                    )}
+                  </tr>
+                ))
+              ) : (
+                <tr className="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+                  <td colSpan={canPerformActions ? 5 : 4} className="text-center py-10">
+                    <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                      <UserX size={48} className="mb-2" />
+                      <h3 className="text-lg font-semibold">Nenhum membro encontrado</h3>
+                      <p className="text-sm">Tente ajustar sua busca ou filtro.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+};]]></content>
+  </change>
+  <change>
+    <file>pages/Financial.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState } from 'react';
+import { PlusCircle, Download, ArrowUpCircle, ArrowDownCircle, Receipt, Trash2 } from 'lucide-react';
+import { Transaction, Member, UserRole } from '../types';
+import { AddTransactionModal } from '../components/AddTransactionModal';
+
+interface FinancialProps {
+    transactions: Transaction[];
+    members: Member[];
+    onAddTransaction: (newTransaction: Omit<Transaction, 'id'>) => Promise<void>;
+    onDeleteTransaction: (transactionId: string) => Promise<void>;
+    userRole: UserRole;
+}
+
+export const Financial: React.FC<FinancialProps> = ({ transactions, members, onAddTransaction, onDeleteTransaction, userRole }) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const canPerformActions = userRole === 'Super Admin' || userRole === 'Financeiro';
+
+    const totalIncome = transactions.filter(t => t.type === 'Income').reduce((acc, t) => acc + t.amount, 0);
+    const totalExpense = transactions.filter(t => t.type === 'Expense').reduce((acc, t) => acc + t.amount, 0);
+    const balance = totalIncome - totalExpense;
+    
+    const handleDelete = async (transactionId: string) => {
+        if (window.confirm('Tem certeza que deseja excluir esta transação?')) {
+            await onDeleteTransaction(transactionId);
+        }
+    };
+
+    const TransactionRow: React.FC<{ transaction: Transaction }> = ({ transaction }) => (
+        <tr className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+            <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                <div className="flex items-center gap-3">
+                    {transaction.type === 'Income'
+                        ? <ArrowUpCircle className="text-green-500" />
+                        : <ArrowDownCircle className="text-red-500" />
+                    }
+                    <div>
+                        <p>{transaction.description}</p>
+                        {transaction.memberName && (
+                             <p className="text-xs text-gray-500 dark:text-gray-400">{transaction.memberName}</p>
+                        )}
+                    </div>
+                </div>
+            </td>
+            <td className="px-6 py-4">{transaction.date}</td>
+            <td className={`px-6 py-4 font-semibold ${transaction.type === 'Income' ? 'text-green-500' : 'text-red-500'}`}>
+                {transaction.type === 'Income' ? '+' : '-'} R$ {transaction.amount.toFixed(2)}
+            </td>
+            {canPerformActions && (
+                <td className="px-6 py-4 text-right">
+                    <button onClick={() => handleDelete(transaction.id)} className="p-2 text-gray-500 hover:text-primary-700 dark:hover:text-primary-500">
+                        <Trash2 size={16} />
+                    </button>
+                </td>
+            )}
+        </tr>
+    );
+
+    return (
+        <>
+        <AddTransactionModal 
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onAddTransaction={onAddTransaction}
+            members={members}
+        />
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-green-100 dark:bg-green-900/50 p-6 rounded-xl text-green-800 dark:text-green-200">
+                    <h3 className="font-medium">Receita Total</h3>
+                    <p className="text-3xl font-bold">R$ {totalIncome.toFixed(2)}</p>
+                </div>
+                <div className="bg-red-100 dark:bg-red-900/50 p-6 rounded-xl text-red-800 dark:text-red-200">
+                    <h3 className="font-medium">Despesa Total</h3>
+                    <p className="text-3xl font-bold">R$ {totalExpense.toFixed(2)}</p>
+                </div>
+                <div className="bg-secondary-100 dark:bg-secondary-900/50 p-6 rounded-xl text-secondary-800 dark:text-secondary-200">
+                    <h3 className="font-medium">Saldo</h3>
+                    <p className="text-3xl font-bold">R$ {balance.toFixed(2)}</p>
+                </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold">Transações Recentes</h2>
+                    <div className="flex items-center gap-2">
+                         <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
+                            <Download size={16} /> Gerar Relatório
+                        </button>
+                        {canPerformActions && (
+                            <button 
+                                onClick={() => setIsModalOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">
+                                <PlusCircle size={16} /> Adicionar Transação
+                            </button>
+                        )}
+                    </div>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" className="px-6 py-3">Descrição</th>
+                                <th scope="col" className="px-6 py-3">Data</th>
+                                <th scope="col" className="px-6 py-3">Valor</th>
+                                {canPerformActions && <th scope="col" className="px-6 py-3 text-right">Ações</th>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                             {transactions.length > 0 ? (
+                                transactions.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} />)
+                            ) : (
+                                <tr className="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+                                    <td colSpan={canPerformActions ? 4 : 3} className="text-center py-10">
+                                        <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                                            <Receipt size={48} className="mb-2" />
+                                            <h3 className="text-lg font-semibold">Nenhuma transação encontrada</h3>
+                                            <p className="text-sm">Comece adicionando a primeira transação financeira.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                             )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        </>
+    );
+};]]></content>
+  </change>
+  <change>
+    <file>pages/Events.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState } from 'react';
+import { PlusCircle, MapPin, Clock, CalendarOff, Edit, Trash2 } from 'lucide-react';
+import { Event, UserRole } from '../types';
+import { AddEventModal } from '../components/AddEventModal';
+
+interface EventCardProps {
+  event: Event;
+  onEdit: () => void;
+  onDelete: () => void;
+  canPerformActions: boolean;
+  isSubscribed: boolean;
+  onSubscribe: () => void;
+}
+
+const EventCard: React.FC<EventCardProps> = ({ event, onEdit, onDelete, canPerformActions, isSubscribed, onSubscribe }) => (
+  <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between relative border border-gray-200 dark:border-gray-700">
+    {canPerformActions && (
+      <div className="absolute top-4 right-4 flex gap-2">
+        <button onClick={onEdit} className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300">
+          <Edit size={16} />
+        </button>
+        <button onClick={onDelete} className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 hover:text-primary-700 dark:text-gray-300 dark:hover:text-primary-500">
+          <Trash2 size={16} />
+        </button>
+      </div>
+    )}
+    <div>
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-sm font-medium text-primary-700 dark:text-primary-400">{event.type}</p>
+          <h3 className="text-lg font-bold mt-1 pr-16">{event.title}</h3>
+        </div>
+        <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">{event.date}</span>
+      </div>
+      <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 space-y-1">
+        <p className="flex items-center"><Clock size={14} className="mr-2" />{event.time}</p>
+        <p className="flex items-center"><MapPin size={14} className="mr-2" />{event.location}</p>
+      </div>
+      <p className="text-sm text-gray-600 dark:text-gray-300 mt-3">{event.description}</p>
+    </div>
+    <div className="mt-6">
+      <button 
+        onClick={onSubscribe}
+        disabled={isSubscribed}
+        className={`w-full px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+          isSubscribed
+            ? 'bg-green-600 cursor-not-allowed'
+            : 'bg-primary-700 hover:bg-primary-800'
+        }`}
+      >
+        {isSubscribed ? 'Inscrito' : 'Inscrever-se'}
+      </button>
+    </div>
+  </div>
+);
+
+interface EventsProps {
+  events: Event[];
+  onAddEvent: (newEvent: Omit<Event, 'id'>) => Promise<void>;
+  onUpdateEvent: (eventId: string, updatedData: Omit<Event, 'id'>) => Promise<void>;
+  onDeleteEvent: (eventId: string) => Promise<void>;
+  userRole: UserRole;
+}
+
+export const Events: React.FC<EventsProps> = ({ events, onAddEvent, onUpdateEvent, onDeleteEvent, userRole }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [subscribedEvents, setSubscribedEvents] = useState<Set<string>>(new Set());
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  
+  const canPerformActions = userRole === 'Super Admin' || userRole === 'Financeiro';
+
+  const handleOpenAddModal = () => {
+    setEditingEvent(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (event: Event) => {
+    setEditingEvent(event);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingEvent(null);
+  };
+
+  const handleSaveEvent = async (data: Omit<Event, 'id'>) => {
+    if (editingEvent) {
+      await onUpdateEvent(editingEvent.id, data);
+    } else {
+      await onAddEvent(data);
+    }
+  };
+
+  const handleDelete = async (eventId: string) => {
+    if (window.confirm('Tem certeza que deseja excluir/cancelar este evento?')) {
+      await onDeleteEvent(eventId);
+    }
+  };
+
+  const handleSubscribe = (eventId: string) => {
+    setSubscribedEvents(prev => new Set(prev).add(eventId));
+    setShowSuccessAlert(true);
+    setTimeout(() => setShowSuccessAlert(false), 3000); // Hide alert after 3 seconds
+  };
+
+  return (
+    <>
+      <AddEventModal 
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSaveEvent}
+        existingEvent={editingEvent}
+      />
+      
+      {showSuccessAlert && (
+        <div className="fixed top-20 right-6 bg-green-100 border border-green-400 text-green-700 dark:bg-green-900 dark:border-green-700 dark:text-green-200 px-4 py-3 rounded-lg shadow-lg z-50" role="alert">
+          <strong className="font-bold">Sucesso!</strong>
+          <span className="block sm:inline"> Inscrição realizada.</span>
+        </div>
+      )}
+
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">Próximos Eventos</h2>
+          {canPerformActions && (
+            <button 
+              onClick={handleOpenAddModal}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">
+              <PlusCircle size={16} /> Criar Evento
+            </button>
+          )}
+        </div>
+        {events.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {events.map((event) => (
+              <EventCard 
+                key={event.id} 
+                event={event} 
+                onEdit={() => handleOpenEditModal(event)}
+                onDelete={() => handleDelete(event.id)}
+                canPerformActions={canPerformActions}
+                isSubscribed={subscribedEvents.has(event.id)}
+                onSubscribe={() => handleSubscribe(event.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-gray-800 p-10 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400">
+            <CalendarOff size={48} className="mx-auto mb-4" />
+            <h3 className="text-lg font-semibold">Nenhum evento agendado</h3>
+            <p className="text-sm">Clique em "Criar Evento" para adicionar o primeiro.</p>
+          </div>
+        )}
+      </div>
+    </>
+  );
+};]]></content>
+  </change>
+  <change>
+    <file>pages/Documents.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState } from 'react';
+import { Upload, Download, FileText, FileBarChart, FileClock, FileQuestion, Trash2, FileX } from 'lucide-react';
+import { Document, DocumentType, UserRole } from '../types';
+import { UploadDocumentModal } from '../components/UploadDocumentModal';
+
+const getDocumentIcon = (type: DocumentType) => {
+    switch (type) {
+        case 'Statute': return <FileText className="text-blue-500" />;
+        case 'Meeting Minutes': return <FileClock className="text-purple-500" />;
+        case 'Report': return <FileBarChart className="text-green-500" />;
+        default: return <FileQuestion className="text-gray-500" />;
+    }
+}
+
+const formatBytes = (bytes: number, decimals = 2) => {
+    if (!bytes || bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+interface DocumentsProps {
+    documents: Document[];
+    onAddDocument: (doc: Omit<Document, 'id'|'url'>, file: File) => Promise<void>;
+    onDeleteDocument: (doc: Document) => Promise<void>;
+    userRole: UserRole;
+}
+
+export const Documents: React.FC<DocumentsProps> = ({ documents, onAddDocument, onDeleteDocument, userRole }) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const canPerformActions = userRole === 'Super Admin' || userRole === 'Financeiro';
+
+    const handleDelete = async (doc: Document) => {
+        if(window.confirm(`Tem certeza que deseja excluir o documento "${doc.name}"?`)) {
+            await onDeleteDocument(doc);
+        }
+    }
+
+    return (
+        <>
+        <UploadDocumentModal 
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onAddDocument={onAddDocument}
+        />
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">Repositório de Documentos</h2>
+                {canPerformActions && (
+                    <button 
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">
+                        <Upload size={16} /> Carregar Documento
+                    </button>
+                )}
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" className="px-6 py-3">Nome do Arquivo</th>
+                            <th scope="col" className="px-6 py-3">Tipo</th>
+                            <th scope="col" className="px-6 py-3">Data de Upload</th>
+                            <th scope="col" className="px-6 py-3">Tamanho</th>
+                            <th scope="col" className="px-6 py-3 text-right">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {documents.length > 0 ? documents.map((doc) => (
+                            <tr key={doc.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap flex items-center gap-3">
+                                    {getDocumentIcon(doc.type)}
+                                    {doc.name}
+                                </td>
+                                <td className="px-6 py-4">{doc.type}</td>
+                                <td className="px-6 py-4">{new Date(doc.uploadDate).toLocaleDateString('pt-BR')}</td>
+                                <td className="px-6 py-4">{formatBytes(doc.size)}</td>
+                                <td className="px-6 py-4 text-right space-x-2">
+                                    <a href={doc.url} download={doc.name} target="_blank" rel="noopener noreferrer" className="p-2 inline-block text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400">
+                                        <Download size={18} />
+                                    </a>
+                                     {canPerformActions && (
+                                         <button 
+                                            onClick={() => handleDelete(doc)}
+                                            className="p-2 text-gray-500 hover:text-primary-700 dark:text-gray-400 dark:hover:text-primary-500">
+                                            <Trash2 size={18} />
+                                        </button>
+                                     )}
+                                </td>
+                            </tr>
+                        )) : (
+                            <tr className="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+                                <td colSpan={5} className="text-center py-10">
+                                     <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                                        <FileX size={48} className="mb-2" />
+                                        <h3 className="text-lg font-semibold">Nenhum documento encontrado</h3>
+                                        <p className="text-sm">Clique em "Carregar Documento" para adicionar o primeiro.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </>
+    );
+};]]></content>
+  </change>
+  <change>
+    <file>pages/Communications.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState } from 'react';
+import { Send, Clock, MessageSquareX } from 'lucide-react';
+import { Communication, Member, UserRole } from '../types';
+
+const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500";
+
+interface CommunicationsProps {
+    members: Member[];
+    communications: Communication[];
+    onAddCommunication: (communication: Omit<Communication, 'id'>) => Promise<void>;
+    userRole: UserRole;
+}
+
+export const Communications: React.FC<CommunicationsProps> = ({ members, communications, onAddCommunication, userRole }) => {
+    const [recipient, setRecipient] = useState('all');
+    const [subject, setSubject] = useState('');
+    const [message, setMessage] = useState('');
+
+    const canPerformActions = userRole === 'Super Admin' || userRole === 'Financeiro';
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!subject || !message) {
+            alert('Assunto e Mensagem são obrigatórios.');
+            return;
+        }
+
+        let recipientText = 'Todos os Membros';
+        if (recipient === 'active') {
+            recipientText = 'Membros Ativos';
+        } else if (recipient === 'inactive') {
+            recipientText = 'Membros Inativos';
+        } else if (recipient !== 'all') {
+            const selectedMember = members.find(m => m.id === recipient);
+            recipientText = selectedMember ? selectedMember.name : 'Desconhecido';
+        }
+
+        await onAddCommunication({
+            subject,
+            message,
+            recipients: recipientText,
+            sentAt: new Date().toISOString()
+        });
+
+        // Reset form
+        setSubject('');
+        setMessage('');
+        setRecipient('all');
+    };
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              {canPerformActions ? (
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <h2 className="text-xl font-semibold mb-4">Enviar Nova Comunicação</h2>
+                    <form className="space-y-4" onSubmit={handleSubmit}>
+                        <div>
+                            <label htmlFor="recipient" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Destinatários</label>
+                            <select 
+                                id="recipient" 
+                                name="recipient" 
+                                value={recipient}
+                                onChange={(e) => setRecipient(e.target.value)}
+                                className={INPUT_CLASS}
+                            >
+                                <option value="all">Todos os Membros</option>
+                                <option value="active">Membros Ativos</option>
+                                <option value="inactive">Membros Inativos</option>
+                                <optgroup label="Membros Individuais">
+                                    {members.map(member => (
+                                        <option key={member.id} value={member.id}>{member.name}</option>
+                                    ))}
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assunto</label>
+                            <input 
+                                type="text" 
+                                name="subject" 
+                                id="subject"
+                                value={subject}
+                                onChange={(e) => setSubject(e.target.value)}
+                                className={INPUT_CLASS} 
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Mensagem</label>
+                            <textarea 
+                                id="message" 
+                                name="message" 
+                                rows={8}
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                className={INPUT_CLASS}
+                            ></textarea>
+                        </div>
+                        <div className="flex justify-end">
+                            <button type="submit" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">
+                                <Send size={16} /> Enviar Mensagem
+                            </button>
+                        </div>
+                    </form>
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <h2 className="text-xl font-semibold mb-4">Enviar Nova Comunicação</h2>
+                    <p className="text-center text-gray-500 dark:text-gray-400 p-8">Você não tem permissão para enviar comunicações.</p>
+                </div>
+              )}
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-semibold mb-4">Histórico de Envios</h2>
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                    {communications.length > 0 ? communications.map(comm => (
+                        <div key={comm.id} className="border-l-4 border-primary-500 pl-4">
+                            <p className="font-semibold text-sm">{comm.subject}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Para: {comm.recipients}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center mt-1"><Clock size={12} className="mr-1.5"/>{new Date(comm.sentAt).toLocaleString('pt-BR')}</p>
+                        </div>
+                    )) : (
+                         <div className="text-center py-10 text-gray-500 dark:text-gray-400">
+                            <MessageSquareX size={48} className="mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold">Nenhuma mensagem enviada</h3>
+                            <p className="text-sm">O histórico aparecerá aqui.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};]]></content>
+  </change>
+  <change>
+    <file>pages/Settings.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState } from 'react';
+import { User, UserRole } from '../types';
+import { PlusCircle, Edit, Trash2, Shield } from 'lucide-react';
+import { AddUserModal } from '../components/AddUserModal';
+
+const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500";
+
+interface SettingsProps {
+    currentUser: User;
+    users: User[];
+    onUpdateUser: (userId: string, data: Partial<User>) => Promise<void>;
+    onAddUser: (user: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => Promise<void>;
+    onDeleteUser: (userId: string) => Promise<void>;
+    showToast: (message: string, type?: 'success' | 'error') => void;
+}
+
+const SettingsSection: React.FC<{ title: string; description: string; children: React.ReactNode }> = ({ title, description, children }) => (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-b dark:border-gray-700 last:border-b-0">
+        <div className="md:col-span-1">
+            <h3 className="text-lg font-semibold">{title}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{description}</p>
+        </div>
+        <div className="md:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+            {children}
+        </div>
+    </div>
+);
+
+export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdateUser, onAddUser, onDeleteUser, showToast }) => {
+    const [name, setName] = useState(currentUser.name);
+    const [email, setEmail] = useState(currentUser.email);
+    const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
+
+    const handleProfileSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await onUpdateUser(currentUser.id, { name, email });
+            showToast('Perfil atualizado com sucesso!');
+        } catch (error: any) {
+            showToast(`Erro: ${error.message}`, 'error');
+        }
+    };
+    
+    const handleDelete = (userId: string) => {
+        if (currentUser?.id === userId) {
+            showToast("Você não pode excluir seu próprio usuário.", 'error');
+            return;
+        }
+        if (window.confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) {
+            onDeleteUser(userId);
+        }
+    };
+
+    const handleOpenAddUserModal = () => {
+        setEditingUser(null);
+        setIsUserModalOpen(true);
+    };
+
+    const handleOpenEditUserModal = (user: User) => {
+        setEditingUser(user);
+        setIsUserModalOpen(true);
+    };
+    
+    const handleSaveUser = async (data: { name: string; email: string; role: UserRole; password?: string; }) => {
+        if (editingUser) {
+            const { password, ...profileData } = data;
+            await onUpdateUser(editingUser.id, profileData);
+        } else {
+            if (!data.password) {
+                showToast("A senha é obrigatória para criar um novo usuário.", 'error');
+                return;
+            }
+            const newUserPayload = {
+                name: data.name,
+                email: data.email,
+                role: data.role,
+                password: data.password,
+            };
+            await onAddUser(newUserPayload);
+        }
+    }
+
+    return (
+        <>
+            {isUserModalOpen && (
+                 <AddUserModal
+                    isOpen={isUserModalOpen}
+                    onClose={() => setIsUserModalOpen(false)}
+                    onSave={handleSaveUser}
+                    existingUser={editingUser}
+                />
+            )}
+            <div className="space-y-4">
+                <SettingsSection title="Meu Perfil" description="Atualize suas informações pessoais e de contato.">
+                    <form className="space-y-4" onSubmit={handleProfileSubmit}>
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
+                            <input type="text" name="name" id="name" value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLASS} />
+                        </div>
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                            <input type="email" name="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLASS} />
+                        </div>
+                        <div className="text-right">
+                            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">Salvar Alterações</button>
+                        </div>
+                    </form>
+                </SettingsSection>
+
+                {currentUser.role === 'Super Admin' && (
+                    <SettingsSection title="Gestão de Usuários" description="Adicione, edite ou remova usuários do sistema.">
+                        <div className="space-y-4">
+                            <div className="flex justify-end">
+                                <button onClick={handleOpenAddUserModal} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">
+                                    <PlusCircle size={16} /> Adicionar Usuário
+                                </button>
+                            </div>
+                            <ul className="divide-y dark:divide-gray-700">
+                                {users.map(user => (
+                                    <li key={user.id} className="py-3 flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full" />
+                                            <div>
+                                                <p className="font-semibold">{user.name}</p>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                                <Shield size={12} className="mr-1.5"/>
+                                                {user.role}
+                                            </span>
+                                            <div>
+                                                <button onClick={() => handleOpenEditUserModal(user)} className="p-2 text-gray-500 hover:text-blue-600"><Edit size={16} /></button>
+                                                <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-500 hover:text-primary-700 dark:hover:text-primary-500"><Trash2 size={16} /></button>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </SettingsSection>
+                )}
+            </div>
+        </>
+    );
+};]]></content>
+  </change>
+  <change>
+    <file>components/AddMemberModal.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState, useEffect } from 'react';
+import { Member, MemberRole } from '../types';
+import { X, UserSquare } from 'lucide-react';
+
+interface AddMemberModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (member: Omit<Member, 'id'>) => Promise<void>;
+  existingMember?: Member | null;
+}
+
+const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500";
+
+export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose, onSave, existingMember }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'Active' | 'Inactive' | 'Pending'>('Pending');
+  const [cpf, setCpf] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [phone, setPhone] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [admissionDate, setAdmissionDate] = useState(new Date().toISOString().split('T')[0]);
+  const [role, setRole] = useState<MemberRole>('Associado');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const isEditing = !!existingMember;
+
+  const resetForm = () => {
+    setName('');
+    setEmail('');
+    setStatus('Pending');
+    setCpf('');
+    setAddress('');
+    setCity('');
+    setState('');
+    setPhone('');
+    setBirthDate('');
+    setAdmissionDate(new Date().toISOString().split('T')[0]);
+    setRole('Associado');
+    setAvatarUrl('');
+    setError('');
+    setIsSaving(false);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      if (isEditing) {
+        setName(existingMember.name);
+        setEmail(existingMember.email);
+        setStatus(existingMember.status);
+        setCpf(existingMember.cpf);
+        setAddress(existingMember.address);
+        setCity(existingMember.city);
+        setState(existingMember.state);
+        setPhone(existingMember.phone);
+        setBirthDate(existingMember.birthDate || '');
+        setAdmissionDate(existingMember.admissionDate);
+        setRole(existingMember.role);
+        setAvatarUrl(existingMember.avatarUrl);
+      } else {
+        resetForm();
+      }
+    }
+  }, [isOpen, existingMember, isEditing]);
+  
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !email || !admissionDate) {
+      setError('Nome, Email e Data de Admissão são obrigatórios.');
+      return;
+    }
+    setError('');
+    setIsSaving(true);
+    
+    const memberData: Omit<Member, 'id'> = { 
+        name, 
+        email, 
+        status, 
+        cpf, 
+        address, 
+        city, 
+        state, 
+        phone, 
+        birthDate: birthDate || null,
+        admissionDate, 
+        role,
+        avatarUrl: avatarUrl || `https://i.pravatar.cc/150?u=${email}`
+    };
+
+    await onSave(memberData);
+    setIsSaving(false);
+    onClose();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">{isEditing ? 'Editar Membro' : 'Adicionar Novo Membro'}</h2>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+            <X size={20} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+            
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+                <div className="flex-shrink-0">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Foto do Perfil</label>
+                    <div className="mt-1 flex flex-col items-center">
+                        <div className="w-32 h-32 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                        {avatarUrl ? (
+                            <img src={avatarUrl} alt="Prévia" className="w-full h-full object-cover" />
+                        ) : (
+                            <UserSquare size={64} className="text-gray-400" />
+                        )}
+                        </div>
+                        <label htmlFor="photo-upload" className="mt-2 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 cursor-pointer">
+                            {avatarUrl ? 'Alterar foto' : 'Enviar foto'}
+                            <input id="photo-upload" name="photo-upload" type="file" className="sr-only" accept="image/*" onChange={handlePhotoChange} />
+                        </label>
+                    </div>
+                </div>
+
+                <div className="flex-grow space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
+                            <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLASS} required/>
+                        </div>
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                            <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLASS} required/>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="cpf" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CPF</label>
+                            <input type="text" id="cpf" value={cpf} onChange={(e) => setCpf(e.target.value)} className={INPUT_CLASS} />
+                        </div>
+                        <div>
+                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Telefone</label>
+                            <input type="tel" id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} className={INPUT_CLASS} />
+                        </div>
+                    </div>
+                    <div>
+                        <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Data de Nascimento</label>
+                        <input type="date" id="birthDate" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={INPUT_CLASS} />
+                    </div>
+                </div>
+            </div>
+
+            <div className="border-t dark:border-gray-700 pt-4">
+                 <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Endereço</h3>
+            </div>
+             <div>
+                <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Endereço</label>
+                <input type="text" id="address" value={address} onChange={(e) => setAddress(e.target.value)} className={INPUT_CLASS} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div>
+                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cidade</label>
+                    <input type="text" id="city" value={city} onChange={(e) => setCity(e.target.value)} className={INPUT_CLASS} />
+                </div>
+                 <div>
+                    <label htmlFor="state" className="block text-sm font-medium text-gray-700 dark:text-gray-300">UF</label>
+                    <input type="text" id="state" value={state} onChange={(e) => setState(e.target.value)} className={INPUT_CLASS} maxLength={2} />
+                </div>
+            </div>
+            
+             <div className="border-t dark:border-gray-700 pt-4">
+                 <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Associação</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label htmlFor="admissionDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Data de Admissão</label>
+                    <input type="date" id="admissionDate" value={admissionDate} onChange={(e) => setAdmissionDate(e.target.value)} className={INPUT_CLASS} required/>
+                </div>
+                <div>
+                    <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Função</label>
+                    <select id="role" value={role} onChange={(e) => setRole(e.target.value as MemberRole)} className={INPUT_CLASS}>
+                        <option value="Associado">Associado</option>
+                        <option value="Membro Fundador">Membro Fundador</option>
+                        <option value="Diretoria">Diretoria</option>
+                    </select>
+                </div>
+                 <div>
+                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                    <select id="status" value={status} onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive' | 'Pending')} className={INPUT_CLASS}>
+                        <option value="Pending">Pendente</option>
+                        <option value="Active">Ativo</option>
+                        <option value="Inactive">Inativo</option>
+                    </select>
+                </div>
+            </div>
+            
+          </div>
+          {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+          <div className="flex justify-end gap-2 pt-6 border-t dark:border-gray-700 mt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait"
+            >
+              {isSaving ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Salvar Membro')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};]]></content>
+  </change>
+  <change>
+    <file>components/AddTransactionModal.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState, useEffect } from 'react';
+import { Transaction, Member } from '../types';
+import { X } from 'lucide-react';
+
+interface AddTransactionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAddTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
+  members: Member[];
+}
+
+const MEMBER_RELATED_DESCRIPTIONS = ['Mensalidade', 'Taxa Novo Associado', 'Multa'];
+const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500";
+
+
+export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClose, onAddTransaction, members }) => {
+  const [description, setDescription] = useState('Mensalidade');
+  const [amount, setAmount] = useState('');
+  const [type, setType] = useState<'Income' | 'Expense'>('Income');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [memberId, setMemberId] = useState<string>('');
+  const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const showMemberSelector = MEMBER_RELATED_DESCRIPTIONS.includes(description);
+  
+  useEffect(() => {
+    if (!showMemberSelector) {
+      setMemberId('');
+    }
+  }, [description, showMemberSelector]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const resetForm = () => {
+    setDescription('Mensalidade');
+    setAmount('');
+    setType('Income');
+    setDate(new Date().toISOString().split('T')[0]);
+    setMemberId('');
+    setError('');
+    setIsSaving(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!description || !amount || !date) {
+      setError('Descrição, Valor e Data são obrigatórios.');
+      return;
+    }
+    if (showMemberSelector && !memberId) {
+        setError('Por favor, selecione um membro.');
+        return;
+    }
+    setError('');
+    setIsSaving(true);
+
+    const selectedMember = members.find(m => m.id === memberId);
+
+    await onAddTransaction({
+      description,
+      amount: parseFloat(amount),
+      type,
+      date,
+      memberId: showMemberSelector ? memberId : undefined,
+      memberName: showMemberSelector ? selectedMember?.name : undefined,
+    });
+    
+    setIsSaving(false);
+    resetForm();
+    onClose();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Adicionar Nova Transação</h2>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+            <X size={20} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo</label>
+                <select id="type" value={type} onChange={(e) => setType(e.target.value as 'Income' | 'Expense')} className={INPUT_CLASS}>
+                  <option value="Income">Receita</option>
+                  <option value="Expense">Despesa</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descrição</label>
+                <select id="description" value={description} onChange={(e) => setDescription(e.target.value)} className={INPUT_CLASS}>
+                  <option>Mensalidade</option>
+                  <option>Taxa Novo Associado</option>
+                  <option>Multa</option>
+                  <option>Doação</option>
+                  <option>Venda de Produtos</option>
+                  <option>Aluguel</option>
+                  <option>Salários</option>
+                  <option>Contas (Água, Luz, etc.)</option>
+                  <option>Outro</option>
+                </select>
+              </div>
+            </div>
+
+            {showMemberSelector && (
+              <div>
+                <label htmlFor="memberId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Associado</label>
+                <select id="memberId" value={memberId} onChange={(e) => setMemberId(e.target.value)} className={INPUT_CLASS} required>
+                    <option value="" disabled>Selecione um membro...</option>
+                    {members.map(member => (
+                        <option key={member.id} value={member.id}>{member.name}</option>
+                    ))}
+                </select>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Valor (R$)</label>
+                    <input type="number" id="amount" value={amount} onChange={(e) => setAmount(e.target.value)} className={INPUT_CLASS} step="0.01" placeholder="0.00" required/>
+                </div>
+                 <div>
+                    <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Data</label>
+                    <input type="date" id="date" value={date} onChange={(e) => setDate(e.target.value)} className={INPUT_CLASS} required/>
+                </div>
+            </div>
+            
+          </div>
+          {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+          <div className="flex justify-end gap-2 pt-6 border-t dark:border-gray-700 mt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait"
+            >
+              {isSaving ? 'Salvando...' : 'Salvar Transação'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};]]></content>
+  </change>
+  <change>
+    <file>components/AddEventModal.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState, useEffect } from 'react';
+import { Event, EventType } from '../types';
+import { X } from 'lucide-react';
+
+interface AddEventModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (event: Omit<Event, 'id'>) => Promise<void>;
+  existingEvent?: Event | null;
+}
+
+const eventTypes: EventType[] = ['Feira', 'Reunião Ordinária', 'Encontro', 'Oficina', 'Treinamento', 'Outros'];
+const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500";
+
+
+export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onSave, existingEvent }) => {
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [time, setTime] = useState('09:00');
+  const [location, setLocation] = useState('');
+  const [type, setType] = useState<EventType>('Reunião Ordinária');
+  const [description, setDescription] = useState('');
+  const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const isEditing = !!existingEvent;
+
+  const resetForm = () => {
+    setTitle('');
+    setDate(new Date().toISOString().split('T')[0]);
+    setTime('09:00');
+    setLocation('');
+    setType('Reunião Ordinária');
+    setDescription('');
+    setError('');
+    setIsSaving(false);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      if (isEditing) {
+        setTitle(existingEvent.title);
+        setDate(existingEvent.date);
+        setTime(existingEvent.time);
+        setLocation(existingEvent.location);
+        setType(existingEvent.type);
+        setDescription(existingEvent.description);
+      } else {
+        resetForm();
+      }
+    }
+  }, [isOpen, existingEvent, isEditing]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title || !date || !time || !location) {
+      setError('Todos os campos, exceto descrição, são obrigatórios.');
+      return;
+    }
+    setError('');
+    setIsSaving(true);
+    await onSave({ 
+        title, date, time, location, description, type
+    });
+    setIsSaving(false);
+    onClose();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">{isEditing ? 'Editar Evento' : 'Criar Novo Evento'}</h2>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+            <X size={20} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Título do Evento</label>
+              <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} className={INPUT_CLASS} required />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Evento</label>
+                <select id="type" value={type} onChange={(e) => setType(e.target.value as EventType)} className={INPUT_CLASS}>
+                  {eventTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Local</label>
+                <input type="text" id="location" value={location} onChange={(e) => setLocation(e.target.value)} className={INPUT_CLASS} required />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Data</label>
+                <input type="date" id="date" value={date} onChange={(e) => setDate(e.target.value)} className={INPUT_CLASS} required />
+              </div>
+              <div>
+                <label htmlFor="time" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Hora</label>
+                <input type="time" id="time" value={time} onChange={(e) => setTime(e.target.value)} className={INPUT_CLASS} required />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descrição (Opcional)</label>
+              <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={INPUT_CLASS}></textarea>
+            </div>
+          </div>
+          {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+          <div className="flex justify-end gap-2 pt-6 border-t dark:border-gray-700 mt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait"
+            >
+              {isSaving ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Salvar Evento')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};]]></content>
+  </change>
+  <change>
+    <file>components/UploadDocumentModal.tsx</file>
+    <description>Versão final e estável para o repositório.</description>
+    <content><![CDATA[import React, { useState } from 'react';
+import { Document, DocumentType } from '../types';
+import { X, UploadCloud } from 'lucide-react';
+
+interface UploadDocumentModalProps {
+  isOpen: boolean;
+  onClose

@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { PlusCircle, Search, UserX, Edit, Trash2 } from 'lucide-react';
-import { Member, UserRole } from '../types';
+import { Member, Transaction, Event, UserRole } from '../types';
 import { AddMemberModal } from '../components/AddMemberModal';
+import { MemberDetailModal } from '../components/MemberDetailModal';
 
 const getStatusBadge = (status: Member['status']) => {
   switch (status) {
@@ -16,15 +17,19 @@ const getStatusBadge = (status: Member['status']) => {
 
 interface MembersProps {
   members: Member[];
+  transactions: Transaction[];
+  events: Event[];
   onAddMember: (newMember: Omit<Member, 'id'>) => Promise<void>;
   onUpdateMember: (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => Promise<void>;
   onDeleteMember: (memberId: string) => Promise<void>;
   userRole: UserRole;
 }
 
-export const Members: React.FC<MembersProps> = ({ members, onAddMember, onUpdateMember, onDeleteMember, userRole }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+export const Members: React.FC<MembersProps> = ({ members, transactions, events, onAddMember, onUpdateMember, onDeleteMember, userRole }) => {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   
@@ -41,17 +46,24 @@ export const Members: React.FC<MembersProps> = ({ members, onAddMember, onUpdate
 
   const handleOpenAddModal = () => {
     setEditingMember(null);
-    setIsModalOpen(true);
+    setIsAddModalOpen(true);
   };
 
   const handleOpenEditModal = (member: Member) => {
     setEditingMember(member);
-    setIsModalOpen(true);
+    setIsAddModalOpen(true);
   };
+  
+  const handleOpenDetailModal = (member: Member) => {
+    setSelectedMember(member);
+    setIsDetailModalOpen(true);
+  }
 
   const handleCloseModal = () => {
-    setIsModalOpen(false);
+    setIsAddModalOpen(false);
+    setIsDetailModalOpen(false);
     setEditingMember(null);
+    setSelectedMember(null);
   };
 
   const handleSaveMember = async (data: Omit<Member, 'id'>) => {
@@ -71,11 +83,20 @@ export const Members: React.FC<MembersProps> = ({ members, onAddMember, onUpdate
   return (
     <>
       <AddMemberModal
-        isOpen={isModalOpen}
+        isOpen={isAddModalOpen}
         onClose={handleCloseModal}
         onSave={handleSaveMember}
         existingMember={editingMember}
       />
+      {selectedMember && (
+        <MemberDetailModal
+            isOpen={isDetailModalOpen}
+            onClose={handleCloseModal}
+            member={selectedMember}
+            transactions={transactions.filter(t => t.memberId === selectedMember.id)}
+            events={events} // Pass all events, filtering will happen inside
+        />
+      )}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           <h2 className="text-xl font-semibold">Lista de Membros ({filteredMembers.length})</h2>
@@ -127,7 +148,7 @@ export const Members: React.FC<MembersProps> = ({ members, onAddMember, onUpdate
             <tbody>
               {filteredMembers.length > 0 ? (
                 filteredMembers.map((member) => (
-                  <tr key={member.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                  <tr key={member.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer" onClick={() => handleOpenDetailModal(member)}>
                     <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap flex items-center gap-3">
                       <img src={member.avatarUrl} alt={member.name} className="w-8 h-8 rounded-full object-cover" />
                       {member.name}
@@ -140,7 +161,7 @@ export const Members: React.FC<MembersProps> = ({ members, onAddMember, onUpdate
                       </span>
                     </td>
                     {canPerformActions && (
-                       <td className="px-6 py-4 text-right">
+                       <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                          <button onClick={() => handleOpenEditModal(member)} className="p-2 text-gray-500 hover:text-blue-600"><Edit size={16} /></button>
                          <button onClick={() => handleDelete(member.id)} className="p-2 text-gray-500 hover:text-primary-700 dark:hover:text-primary-500"><Trash2 size={16} /></button>
                        </td>

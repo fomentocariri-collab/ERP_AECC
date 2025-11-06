@@ -29,22 +29,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .select('id, name, email, role, avatar_url')
         .eq('id', supabaseUser.id)
         .single();
-      if (error) throw error;
+      if (error || !profile) {
+        // This is not necessarily an error to throw, but a state where the profile doesn't exist yet.
+        // The calling function will handle this.
+        console.warn("User profile not found for uid:", supabaseUser.id);
+        return null;
+      }
       return {
         id: profile.id, email: profile.email, name: profile.name,
         role: profile.role, avatarUrl: profile.avatar_url,
       };
     } catch (error: any) {
-        console.error("Erro ao buscar perfil do usuário:", error.message);
-        // This is a critical error, likely means RLS is blocking or profile is missing
-        // Logging out ensures we don't stay in a broken state
-        await supabase.auth.signOut();
+        console.error("Error fetching user profile:", error.message);
         return null;
     }
   }, []);
   
   const fetchUsers = useCallback(async () => {
-    // Permission check moved to RLS policy. We attempt to fetch regardless.
     try {
       const { data, error } = await supabase.from('profiles').select('*');
       if (error) throw error;
@@ -57,13 +58,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       })));
     } catch (error: any) {
         console.error("Error fetching users (might be due to permissions):", error.message);
-        setUsers([]); // Clear users if fetch fails
+        setUsers([]);
     }
   }, []);
 
   // Central listener for auth state changes
   useEffect(() => {
-    setLoading(true);
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userProfile = await fetchUserProfile(session?.user ?? null);
+      setCurrentUser(userProfile);
+      setLoading(false);
+    }
+    checkUser();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         const userProfile = await fetchUserProfile(session?.user ?? null);
@@ -87,10 +95,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [currentUser, fetchUsers]);
 
   const login = useCallback(async (email: string, pass: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw new Error("Usuário ou senha inválidos.");
-    // onAuthStateChange listener will handle setting the user profile
-  }, []);
+    if (!data.user) throw new Error("Login falhou, usuário não encontrado.");
+
+    // After successful login, explicitly fetch the profile.
+    // onAuthStateChange can be slow, this provides faster feedback.
+    const userProfile = await fetchUserProfile(data.user);
+    if (!userProfile) {
+        // This is the critical part: if profile doesn't exist, sign out to prevent broken state.
+        await supabase.auth.signOut();
+        throw new Error("Perfil de usuário não encontrado. Contate o administrador.");
+    }
+    setCurrentUser(userProfile);
+  }, [fetchUserProfile]);
 
   const logout = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
@@ -102,10 +120,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { session: adminSession } } = await supabase.auth.getSession();
     if (!adminSession) throw new Error("Sessão de administrador necessária para esta operação.");
     
-    // Temporarily sign out the admin to create a new user
-    // This is a Supabase client-side limitation.
-    await supabase.auth.signOut();
-
+    // We don't need to sign out. We can use the admin client to create a user,
+    // but that's a server-side operation. Client-side, we sign up then restore session.
+    // This flow is tricky. A better way is an Edge Function. But let's fix the client flow.
+    
+    // This is a Supabase client-side limitation. Sign-up logs the new user in.
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -117,9 +136,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
         }
     });
-    
-    // CRITICAL: Restore admin session immediately, regardless of signUp outcome
+
+    // CRITICAL: Restore admin session immediately after the signup call.
     const { error: sessionError } = await supabase.auth.setSession(adminSession);
+    
     if (sessionError) {
         console.error("CRITICAL: Failed to restore admin session.", sessionError);
         await logout(); // Force logout for security
@@ -154,8 +174,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [currentUser, fetchUserProfile, fetchUsers]);
   
   const deleteUser = useCallback(async (userId: string) => {
-    // This is a placeholder as client-side user deletion is unsafe.
-    // It should be implemented with a server-side function (Supabase Edge Function).
+    // This should be done via a Supabase Edge function for security.
+    // Client-side user deletion is not recommended.
     alert("Funcionalidade em desenvolvimento. A exclusão de usuários deve ser feita no painel do Supabase.");
     console.warn(`Request to delete user ${userId} blocked. Implement a secure server-side function.`);
   }, []);
