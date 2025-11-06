@@ -53,7 +53,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
                 }
               `}
             >
-              {item.icon}
+              {
+                // @ts-ignore
+                React.cloneElement(item.icon, { currentPage: currentPage === item.name })
+              }
               <span className={`overflow-hidden transition-all ${expanded ? 'w-52 ml-3' : 'w-0'}`}>
                 {item.name}
               </span>

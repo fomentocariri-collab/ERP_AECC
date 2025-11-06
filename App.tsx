@@ -63,45 +63,49 @@ const App: React.FC = () => {
     return `Erro ao ${action}: ${error.message}\n\nIsso geralmente acontece por falta de permissão no banco de dados. Verifique as políticas de segurança (RLS) no painel do Supabase para esta tabela.`;
   };
 
-  const fetchData = useCallback(async () => {
-    if (!currentUser) return;
-    setAppLoading(true);
-    try {
-      const [membersRes, transactionsRes, eventsRes, documentsRes, communicationsRes] = await Promise.all([
-        supabase.from('members').select('*').order('name', { ascending: true }),
-        supabase.from('transactions').select('*').order('date', { ascending: false }),
-        supabase.from('events').select('*').order('date', { ascending: false }),
-        supabase.from('documents').select('*').order('upload_date', { ascending: false }),
-        supabase.from('communications').select('*').order('sent_at', { ascending: false })
-      ]);
+  useEffect(() => {
+    const fetchData = async () => {
+        if (!currentUser) {
+            setAppLoading(false);
+            return;
+        };
+        
+        setAppLoading(true);
+        try {
+          const [membersRes, transactionsRes, eventsRes, documentsRes, communicationsRes] = await Promise.all([
+            supabase.from('members').select('*').order('name', { ascending: true }),
+            supabase.from('transactions').select('*').order('date', { ascending: false }),
+            supabase.from('events').select('*').order('date', { ascending: false }),
+            supabase.from('documents').select('*').order('upload_date', { ascending: false }),
+            supabase.from('communications').select('*').order('sent_at', { ascending: false })
+          ]);
+    
+          if (membersRes.error) throw membersRes.error;
+          setMembers(snakeToCamel(membersRes.data) as Member[]);
+    
+          if (transactionsRes.error) throw transactionsRes.error;
+          setTransactions(snakeToCamel(transactionsRes.data) as Transaction[]);
+          
+          if (eventsRes.error) throw eventsRes.error;
+          setEvents(snakeToCamel(eventsRes.data) as Event[]);
+          
+          if (documentsRes.error) throw documentsRes.error;
+          setDocuments(snakeToCamel(documentsRes.data) as Document[]);
+          
+          if (communicationsRes.error) throw communicationsRes.error;
+          setCommunications(snakeToCamel(communicationsRes.data) as Communication[]);
+    
+        } catch (error: any) {
+          console.error("Error fetching data:", error.message);
+          alert(`Falha ao carregar os dados: ${error.message}`);
+        } finally {
+          setAppLoading(false);
+        }
+    };
 
-      if (membersRes.error) throw membersRes.error;
-      setMembers(snakeToCamel(membersRes.data) as Member[]);
-
-      if (transactionsRes.error) throw transactionsRes.error;
-      setTransactions(snakeToCamel(transactionsRes.data) as Transaction[]);
-      
-      if (eventsRes.error) throw eventsRes.error;
-      setEvents(snakeToCamel(eventsRes.data) as Event[]);
-      
-      if (documentsRes.error) throw documentsRes.error;
-      setDocuments(snakeToCamel(documentsRes.data) as Document[]);
-      
-      if (communicationsRes.error) throw communicationsRes.error;
-      setCommunications(snakeToCamel(communicationsRes.data) as Communication[]);
-
-    } catch (error: any) {
-      console.error("Error fetching data:", error.message);
-    } finally {
-      setAppLoading(false);
-    }
+    fetchData();
   }, [currentUser]);
 
-  useEffect(() => {
-    if (currentUser) {
-        fetchData();
-    }
-  }, [currentUser, fetchData]);
 
   // CRUD Handlers
   const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
