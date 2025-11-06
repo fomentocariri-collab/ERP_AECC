@@ -24,14 +24,19 @@ export const Login: React.FC = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-            <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
-                <div className="text-center">
-                    <img src={LOGO_BASE64} alt="Cariri Criativo Logo" className="mx-auto w-48 mb-4" />
-                    <h2 className="text-xl text-gray-600 dark:text-gray-400">Bem-vindo(a) de volta!</h2>
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-primary-100 dark:from-gray-900 dark:to-primary-950/50">
+            <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
+                <div className="text-center space-y-2">
+                    <img src={LOGO_BASE64} alt="Cariri Criativo Logo" className="mx-auto w-40 mb-4" />
+                    <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                        Acessar a Plataforma
+                    </h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Bem-vindo(a) de volta!
+                    </p>
                 </div>
-                <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-                    <div className="rounded-md shadow-sm -space-y-px">
+                <form className="mt-6 space-y-6" onSubmit={handleLogin}>
+                    <div className="rounded-md -space-y-px">
                         <div>
                             <label htmlFor="email-address" className="sr-only">Email</label>
                             <input
@@ -42,7 +47,7 @@ export const Login: React.FC = () => {
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 placeholder-gray-500 text-gray-900 dark:text-gray-200 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 placeholder-gray-500 text-gray-900 dark:text-gray-200 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                                 placeholder="Email"
                                 disabled={loading}
                             />
@@ -57,7 +62,7 @@ export const Login: React.FC = () => {
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 placeholder-gray-500 text-gray-900 dark:text-gray-200 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 placeholder-gray-500 text-gray-900 dark:text-gray-200 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                                 placeholder="Senha"
                                 disabled={loading}
                             />
@@ -74,7 +79,7 @@ export const Login: React.FC = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-700 hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-primary-400 disabled:cursor-not-allowed"
+                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-700 hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-primary-400 disabled:cursor-not-allowed transition-colors"
                         >
                             <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                                 {loading ? (

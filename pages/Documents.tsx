@@ -45,7 +45,7 @@ export const Documents: React.FC<DocumentsProps> = ({ documents, onAddDocument, 
             onClose={() => setIsModalOpen(false)}
             onAddDocument={onAddDocument}
         />
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold">Repositório de Documentos</h2>
                 {canPerformActions && (
@@ -78,13 +78,13 @@ export const Documents: React.FC<DocumentsProps> = ({ documents, onAddDocument, 
                                 <td className="px-6 py-4">{new Date(doc.uploadDate).toLocaleDateString('pt-BR')}</td>
                                 <td className="px-6 py-4">{formatBytes(doc.size)}</td>
                                 <td className="px-6 py-4 text-right space-x-2">
-                                    <a href={doc.url} download={doc.name} target="_blank" rel="noopener noreferrer" className="p-2 inline-block text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400">
+                                    <a href={doc.url} download={doc.name} target="_blank" rel="noopener noreferrer" className="p-2 inline-block text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400">
                                         <Download size={18} />
                                     </a>
                                      {canPerformActions && (
                                          <button 
                                             onClick={() => handleDelete(doc)}
-                                            className="p-2 text-gray-500 hover:text-secondary-700 dark:text-gray-400 dark:hover:text-secondary-500">
+                                            className="p-2 text-gray-500 hover:text-primary-700 dark:text-gray-400 dark:hover:text-primary-500">
                                             <Trash2 size={18} />
                                         </button>
                                      )}

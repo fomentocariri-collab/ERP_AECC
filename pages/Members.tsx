@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { PlusCircle, Filter, Download, UserX, Edit, Trash2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { PlusCircle, Search, UserX, Edit, Trash2 } from 'lucide-react';
 import { Member, UserRole } from '../types';
 import { AddMemberModal } from '../components/AddMemberModal';
 
@@ -25,8 +25,19 @@ interface MembersProps {
 export const Members: React.FC<MembersProps> = ({ members, onAddMember, onUpdateMember, onDeleteMember, userRole }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
   
   const canPerformActions = userRole === 'Super Admin';
+
+  const filteredMembers = useMemo(() => {
+    return members.filter(member => {
+      const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            member.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'All' || member.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [members, searchTerm, statusFilter]);
 
   const handleOpenAddModal = () => {
     setEditingMember(null);
@@ -65,26 +76,43 @@ export const Members: React.FC<MembersProps> = ({ members, onAddMember, onUpdate
         onSave={handleSaveMember}
         existingMember={editingMember}
       />
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <h2 className="text-xl font-semibold">Lista de Membros</h2>
-          <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
-              <Download size={16} /> Exportar
+          <h2 className="text-xl font-semibold">Lista de Membros ({filteredMembers.length})</h2>
+          {canPerformActions && (
+            <button
+              onClick={handleOpenAddModal}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800"
+            >
+              <PlusCircle size={16} /> Adicionar Membro
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
-              <Filter size={16} /> Filtrar
-            </button>
-            {canPerformActions && (
-              <button
-                onClick={handleOpenAddModal}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800"
-              >
-                <PlusCircle size={16} /> Adicionar Membro
-              </button>
-            )}
-          </div>
+          )}
         </div>
+
+        {/* Filter and Search Bar */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Buscar por nome ou email..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="All">Todos os Status</option>
+            <option value="Active">Ativos</option>
+            <option value="Inactive">Inativos</option>
+            <option value="Pending">Pendentes</option>
+          </select>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -97,8 +125,8 @@ export const Members: React.FC<MembersProps> = ({ members, onAddMember, onUpdate
               </tr>
             </thead>
             <tbody>
-              {members.length > 0 ? (
-                members.map((member) => (
+              {filteredMembers.length > 0 ? (
+                filteredMembers.map((member) => (
                   <tr key={member.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                     <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap flex items-center gap-3">
                       <img src={member.avatarUrl} alt={member.name} className="w-8 h-8 rounded-full object-cover" />
@@ -113,8 +141,8 @@ export const Members: React.FC<MembersProps> = ({ members, onAddMember, onUpdate
                     </td>
                     {canPerformActions && (
                        <td className="px-6 py-4 text-right">
-                         <button onClick={() => handleOpenEditModal(member)} className="p-2 text-gray-500 hover:text-primary-600"><Edit size={16} /></button>
-                         <button onClick={() => handleDelete(member.id)} className="p-2 text-gray-500 hover:text-secondary-700 dark:hover:text-secondary-500"><Trash2 size={16} /></button>
+                         <button onClick={() => handleOpenEditModal(member)} className="p-2 text-gray-500 hover:text-blue-600"><Edit size={16} /></button>
+                         <button onClick={() => handleDelete(member.id)} className="p-2 text-gray-500 hover:text-primary-700 dark:hover:text-primary-500"><Trash2 size={16} /></button>
                        </td>
                     )}
                   </tr>
@@ -125,7 +153,7 @@ export const Members: React.FC<MembersProps> = ({ members, onAddMember, onUpdate
                     <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
                       <UserX size={48} className="mb-2" />
                       <h3 className="text-lg font-semibold">Nenhum membro encontrado</h3>
-                      <p className="text-sm">Comece adicionando o primeiro membro da sua associação.</p>
+                      <p className="text-sm">Tente ajustar sua busca ou filtro.</p>
                     </div>
                   </td>
                 </tr>

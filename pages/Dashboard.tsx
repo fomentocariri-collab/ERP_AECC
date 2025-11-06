@@ -3,7 +3,7 @@ import { Users, UserCheck, Calendar, DollarSign, UserX, CalendarOff } from 'luci
 import { Member, Transaction, Event } from '../types';
 
 const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; }> = ({ icon, title, value }) => (
-  <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md flex items-start justify-between">
+  <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex items-start justify-between border border-gray-200 dark:border-gray-700">
     <div>
       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
       <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
@@ -36,7 +36,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, transactions, eve
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold mb-4">Membros Recentes</h2>
           <div className="space-y-4">
             {members.length > 0 ? members.slice(-4).reverse().map(member => (
@@ -59,7 +59,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, transactions, eve
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold mb-4">Próximos Eventos</h2>
           <div className="space-y-4">
             {events.length > 0 ? events.slice(-3).reverse().map(event => (

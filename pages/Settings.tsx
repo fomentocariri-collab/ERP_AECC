@@ -19,7 +19,7 @@ const SettingsSection: React.FC<{ title: string; description: string; children: 
             <h3 className="text-lg font-semibold">{title}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">{description}</p>
         </div>
-        <div className="md:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
+        <div className="md:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
             {children}
         </div>
     </div>
@@ -131,8 +131,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
                                                 {user.role}
                                             </span>
                                             <div>
-                                                <button onClick={() => handleOpenEditUserModal(user)} className="p-2 text-gray-500 hover:text-primary-600"><Edit size={16} /></button>
-                                                <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-500 hover:text-secondary-700 dark:hover:text-secondary-500"><Trash2 size={16} /></button>
+                                                <button onClick={() => handleOpenEditUserModal(user)} className="p-2 text-gray-500 hover:text-blue-600"><Edit size={16} /></button>
+                                                <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-500 hover:text-primary-700 dark:hover:text-primary-500"><Trash2 size={16} /></button>
                                             </div>
                                         </div>
                                     </li>

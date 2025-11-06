@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -98,8 +100,10 @@ const App: React.FC = () => {
   }, [currentUser]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (currentUser) {
+        fetchData();
+    }
+  }, [currentUser, fetchData]);
 
   // CRUD Handlers
   const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
@@ -139,10 +143,11 @@ const App: React.FC = () => {
       console.error('Error deleting member:', error);
       alert(generateErrorMessage('excluir membro', error));
     } else {
+      // FIX: Corrected arrow function syntax
       setMembers(prev => prev.filter(m => m.id !== memberId));
     }
   };
-  
+
   const handleAddTransaction = async (newTransactionData: Omit<Transaction, 'id'>) => {
     const { data, error } = await supabase
       .from('transactions')
@@ -154,7 +159,7 @@ const App: React.FC = () => {
       console.error('Error adding transaction:', error);
       alert(generateErrorMessage('adicionar transação', error));
     } else if (data) {
-      setTransactions(prev => [snakeToCamel(data) as Transaction, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setTransactions(prev => [snakeToCamel(data) as Transaction, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }
   };
 
@@ -167,19 +172,30 @@ const App: React.FC = () => {
       setTransactions(prev => prev.filter(t => t.id !== transactionId));
     }
   };
-
-  const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
-    const { data, error } = await supabase.from('events').insert([camelToSnake(newEventData)]).select().single();
+  
+    const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
+    const { data, error } = await supabase
+      .from('events')
+      .insert([camelToSnake(newEventData)])
+      .select()
+      .single();
+    
     if (error) {
       console.error('Error adding event:', error);
       alert(generateErrorMessage('adicionar evento', error));
     } else if (data) {
-      setEvents(prev => [snakeToCamel(data) as Event, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setEvents(prev => [snakeToCamel(data) as Event, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }
   };
 
   const handleUpdateEvent = async (eventId: string, updatedData: Omit<Event, 'id'>) => {
-    const { data, error } = await supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId).select().single();
+    const { data, error } = await supabase
+      .from('events')
+      .update(camelToSnake(updatedData))
+      .eq('id', eventId)
+      .select()
+      .single();
+    
     if (error) {
       console.error('Error updating event:', error);
       alert(generateErrorMessage('atualizar evento', error));
@@ -190,7 +206,7 @@ const App: React.FC = () => {
 
   const handleDeleteEvent = async (eventId: string) => {
     const { error } = await supabase.from('events').delete().eq('id', eventId);
-     if (error) {
+    if (error) {
       console.error('Error deleting event:', error);
       alert(generateErrorMessage('excluir evento', error));
     } else {
@@ -199,64 +215,70 @@ const App: React.FC = () => {
   };
 
   const handleAddDocument = async (docData: Omit<Document, 'id' | 'url'>, file: File) => {
-     const filePath = `${currentUser!.id}/${Date.now()}_${file.name}`;
-     const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
-     
-     if (uploadError) {
-       console.error("Error uploading document:", uploadError);
-       alert(generateErrorMessage('fazer upload do documento (Storage)', uploadError));
-       return;
-     }
+    const filePath = `${currentUser!.id}/${new Date().getTime()}-${file.name}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(filePath, file);
 
-     const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
-     
-     if (!urlData?.publicUrl) {
-        console.error("Could not get public URL for uploaded file:", filePath);
-        alert("Erro Crítico: Não foi possível obter a URL pública para o arquivo após o upload. Verifique se o bucket 'documents' no Supabase é público.");
-        // Attempt to clean up the orphaned file
-        await supabase.storage.from('documents').remove([filePath]);
-        return;
-     }
-     
-     const documentToInsert = {
-        ...docData,
-        url: urlData.publicUrl,
-     };
-
-     const { data, error } = await supabase
-        .from('documents')
-        .insert([camelToSnake(documentToInsert)])
-        .select()
-        .single();
-
-     if (error) {
-       console.error("Error saving document record:", error);
-       alert(generateErrorMessage('salvar registro do documento (Database)', error));
-     } else if (data) {
-       setDocuments(prev => [snakeToCamel(data) as Document, ...prev]);
-     }
-  };
-
-  const handleDeleteDocument = async (document: Document) => {
-    // Extract file path from URL
-    const url = new URL(document.url);
-    const filePath = url.pathname.split('/documents/')[1];
-
-    const { error: storageError } = await supabase.storage.from('documents').remove([decodeURIComponent(filePath)]);
-    if (storageError) {
-      console.error("Error deleting from storage:", storageError);
-      // Do not alert if file not found, it might have been deleted manually
-      if (storageError.message !== 'The resource was not found') {
-        alert(generateErrorMessage('excluir arquivo do Storage', storageError));
-      }
+    if (uploadError) {
+      console.error('Error uploading file:', uploadError);
+      alert(generateErrorMessage('carregar arquivo', uploadError));
+      return;
     }
 
-    const { error } = await supabase.from('documents').delete().eq('id', document.id);
+    const { data: urlData } = supabase.storage
+      .from('documents')
+      .getPublicUrl(filePath);
+
+    if (!urlData.publicUrl) {
+        alert("Não foi possível obter a URL pública do arquivo.");
+        await supabase.storage.from('documents').remove([filePath]);
+        return;
+    }
+
+    const documentToInsert = {
+      ...camelToSnake(docData),
+      url: urlData.publicUrl,
+    };
+    
+    const { data, error: insertError } = await supabase
+      .from('documents')
+      .insert([documentToInsert])
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Error adding document record:', insertError);
+      alert(generateErrorMessage('adicionar registro de documento', insertError));
+      await supabase.storage.from('documents').remove([filePath]);
+    } else if (data) {
+      setDocuments(prev => [snakeToCamel(data) as Document, ...prev].sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()));
+    }
+  };
+
+  const handleDeleteDocument = async (doc: Document) => {
+    try {
+        const url = new URL(doc.url);
+        const filePath = url.pathname.split('/documents/')[1];
+
+        if (filePath) {
+            const { error: storageError } = await supabase.storage.from('documents').remove([decodeURIComponent(filePath)]);
+            if (storageError) {
+                console.error('Error deleting file from storage:', storageError);
+                // Allow proceeding to DB deletion even if storage deletion fails, to avoid orphaned records.
+            }
+        }
+    } catch(e) {
+        console.error("Could not parse URL to delete from storage:", doc.url, e);
+    }
+    
+    const { error } = await supabase.from('documents').delete().eq('id', doc.id);
     if (error) {
-      console.error("Error deleting document record:", error);
-      alert(generateErrorMessage('excluir registro do documento', error));
+      console.error('Error deleting document:', error);
+      alert(generateErrorMessage('excluir documento', error));
     } else {
-      setDocuments(prev => prev.filter(d => d.id !== document.id));
+      setDocuments(prev => prev.filter(d => d.id !== doc.id));
     }
   };
   
@@ -268,17 +290,39 @@ const App: React.FC = () => {
       .single();
 
     if (error) {
-      console.error("Error adding communication:", error);
+      console.error('Error adding communication:', error);
       alert(generateErrorMessage('adicionar comunicação', error));
     } else if (data) {
-      setCommunications(prev => [snakeToCamel(data) as Communication, ...prev]);
+      setCommunications(prev => [snakeToCamel(data) as Communication, ...prev].sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()));
     }
   };
-  
+
+  const renderPage = () => {
+    if (!currentUser) return null;
+    switch (currentPage) {
+      case 'Dashboard':
+        return <Dashboard members={members} transactions={transactions} events={events} />;
+      case 'Members':
+        return <Members members={members} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} userRole={currentUser.role} />;
+      case 'Financial':
+        return <Financial transactions={transactions} members={members} onAddTransaction={handleAddTransaction} onDeleteTransaction={handleDeleteTransaction} userRole={currentUser.role} />;
+      case 'Events':
+        return <Events events={events} onAddEvent={handleAddEvent} onUpdateEvent={handleUpdateEvent} onDeleteEvent={handleDeleteEvent} userRole={currentUser.role} />;
+      case 'Documents':
+        return <Documents documents={documents} onAddDocument={handleAddDocument} onDeleteDocument={handleDeleteDocument} userRole={currentUser.role} />;
+      case 'Communications':
+        return <Communications members={members} communications={communications} onAddCommunication={handleAddCommunication} userRole={currentUser.role} />;
+      case 'Settings':
+        return <Settings currentUser={currentUser} users={users} onUpdateUser={updateUser} onAddUser={addUser} onDeleteUser={deleteUser} />;
+      default:
+        return <Dashboard members={members} transactions={transactions} events={events} />;
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <Loader2 className="animate-spin text-primary-700" size={48} />
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <Loader2 className="h-12 w-12 animate-spin text-primary-600" />
       </div>
     );
   }
@@ -286,67 +330,20 @@ const App: React.FC = () => {
   if (!currentUser) {
     return <Login />;
   }
-  
-  if (appLoading) {
-     return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <div className="text-center">
-            <Loader2 className="animate-spin text-primary-700 mx-auto" size={48} />
-            <p className="mt-4 text-gray-600 dark:text-gray-300">Carregando dados da associação...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-      <Sidebar 
-        currentPage={currentPage} 
-        setCurrentPage={setCurrentPage}
-        user={currentUser}
-      />
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} user={currentUser} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header title={currentPage} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-4 sm:p-6 md:p-8">
-          <div className={currentPage === 'Dashboard' ? '' : 'hidden'}>
-            <Dashboard members={members} transactions={transactions} events={events} />
-          </div>
-          <div className={currentPage === 'Members' ? '' : 'hidden'}>
-            <Members 
-              members={members} 
-              onAddMember={handleAddMember} 
-              onUpdateMember={handleUpdateMember}
-              onDeleteMember={handleDeleteMember}
-              userRole={currentUser.role} 
-            />
-          </div>
-          <div className={currentPage === 'Financial' ? '' : 'hidden'}>
-            <Financial 
-              transactions={transactions} 
-              members={members} 
-              onAddTransaction={handleAddTransaction} 
-              onDeleteTransaction={handleDeleteTransaction}
-              userRole={currentUser.role} 
-            />
-          </div>
-          <div className={currentPage === 'Events' ? '' : 'hidden'}>
-            <Events 
-              events={events} 
-              onAddEvent={handleAddEvent} 
-              onUpdateEvent={handleUpdateEvent}
-              onDeleteEvent={handleDeleteEvent}
-              userRole={currentUser.role} 
-            />
-          </div>
-          <div className={currentPage === 'Documents' ? '' : 'hidden'}>
-            <Documents documents={documents} onAddDocument={handleAddDocument} onDeleteDocument={handleDeleteDocument} userRole={currentUser.role} />
-          </div>
-          <div className={currentPage === 'Communications' ? '' : 'hidden'}>
-            <Communications members={members} communications={communications} onAddCommunication={handleAddCommunication} userRole={currentUser.role} />
-          </div>
-          <div className={currentPage === 'Settings' ? '' : 'hidden'}>
-            <Settings currentUser={currentUser} users={users} onUpdateUser={updateUser} onAddUser={addUser} onDeleteUser={deleteUser} />
-          </div>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
+          {appLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="h-12 w-12 animate-spin text-primary-600" />
+            </div>
+          ) : (
+            renderPage()
+          )}
         </main>
       </div>
     </div>

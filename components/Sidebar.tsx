@@ -15,7 +15,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
   const { logout } = useAuth();
 
   return (
-    <aside className="h-screen">
+    <aside className="h-screen sticky top-0">
       <nav className="h-full flex flex-col bg-white dark:bg-gray-800 border-r dark:border-gray-700 shadow-sm">
         <div className="p-4 pb-2 flex justify-between items-center">
           <img src={LOGO_BASE64} alt="Cariri Criativo Logo" className={`overflow-hidden transition-all ${expanded ? 'w-32' : 'w-0'}`} />
@@ -60,10 +60,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
 
         <div className="border-t dark:border-gray-700 flex flex-col p-3">
           <div className="flex items-center">
-            <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-md" />
+            <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full" />
             <div className={`flex justify-between items-center overflow-hidden transition-all ${ expanded ? 'w-52 ml-3' : 'w-0' }`}>
               <div className="leading-4">
-                <h4 className="font-semibold truncate">{user.name}</h4>
+                <h4 className="font-bold truncate">{user.name}</h4>
                 <span className="text-xs text-gray-600 dark:text-gray-400">{user.role}</span>
               </div>
             </div>
@@ -74,8 +74,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
               relative flex items-center justify-start w-full py-2 px-3 mt-4
               font-medium rounded-md cursor-pointer
               transition-colors group
-              bg-gray-100 hover:bg-secondary-100 text-gray-800 hover:text-secondary-700
-              dark:bg-gray-700 dark:hover:bg-secondary-900/50 dark:text-gray-300 dark:hover:text-secondary-300
+              bg-gray-100 hover:bg-primary-100 text-gray-800 hover:text-primary-700
+              dark:bg-gray-700 dark:hover:bg-primary-900/50 dark:text-gray-300 dark:hover:text-primary-300
             `}
           >
             <LogOut size={20} />

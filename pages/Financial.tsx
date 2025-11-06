@@ -48,7 +48,7 @@ export const Financial: React.FC<FinancialProps> = ({ transactions, members, onA
             </td>
             {canPerformActions && (
                 <td className="px-6 py-4 text-right">
-                    <button onClick={() => handleDelete(transaction.id)} className="p-2 text-gray-500 hover:text-secondary-700 dark:hover:text-secondary-500">
+                    <button onClick={() => handleDelete(transaction.id)} className="p-2 text-gray-500 hover:text-primary-700 dark:hover:text-primary-500">
                         <Trash2 size={16} />
                     </button>
                 </td>
@@ -74,13 +74,13 @@ export const Financial: React.FC<FinancialProps> = ({ transactions, members, onA
                     <h3 className="font-medium">Despesa Total</h3>
                     <p className="text-3xl font-bold">R$ {totalExpense.toFixed(2)}</p>
                 </div>
-                <div className="bg-primary-100 dark:bg-primary-900/50 p-6 rounded-xl text-primary-800 dark:text-primary-200">
+                <div className="bg-secondary-100 dark:bg-secondary-900/50 p-6 rounded-xl text-secondary-800 dark:text-secondary-200">
                     <h3 className="font-medium">Saldo</h3>
                     <p className="text-3xl font-bold">R$ {balance.toFixed(2)}</p>
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-semibold">Transações Recentes</h2>
                     <div className="flex items-center gap-2">

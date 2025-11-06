@@ -52,7 +52,7 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               {canPerformActions ? (
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
                     <h2 className="text-xl font-semibold mb-4">Enviar Nova Comunicação</h2>
                     <form className="space-y-4" onSubmit={handleSubmit}>
                         <div>
@@ -104,13 +104,13 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
                     </form>
                 </div>
               ) : (
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
                     <h2 className="text-xl font-semibold mb-4">Enviar Nova Comunicação</h2>
                     <p className="text-center text-gray-500 dark:text-gray-400 p-8">Você não tem permissão para enviar comunicações.</p>
                 </div>
               )}
             </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-semibold mb-4">Histórico de Envios</h2>
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                     {communications.length > 0 ? communications.map(comm => (

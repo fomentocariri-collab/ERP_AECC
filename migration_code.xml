@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changes>
+  <change>
+    <file>index.tsx</file>
+    <description>Conteúdo completo para migração do projeto.</description>
+    <content><![CDATA[import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import { AuthProvider } from './contexts/AuthContext';
+
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
+}
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  </React.StrictMode>
+);]]></content>
+  </change>
+  <change>
+    <file>metadata.json</file>
+    <description>Conteúdo completo para migração do projeto.</description>
+    <content><![CDATA[{
+  "name": "GERENCIADOR_AECC",
+  "description": "Gerenciamento da Associação Feira Cariri Criativo",
+  "requestFramePermissions": []
+}]]></content>
+  </change>
+  <change>
+    <file>index.html</file>
+    <description>Conteúdo completo para migração do projeto.</description>
+    <content><![CDATA[<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AssociaçãoPRO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              'primary': { // Dark Green from Logo
+                '50': '#f0f6f4',
+                '100': '#ddebe6',
+                '200': '#bbd7cd',
+                '300': '#99c3b4',
+                '400': '#5f9e86',
+                '500': '#43846c',
+                '600': '#3a7963',
+                '700': '#2d5e4d', // Base color from logo
+                '800': '#244b3e',
+                '900': '#1e3e33',
+                '950': '#11241d',
+              },
+              'secondary': { // Dark Red from Logo
+                '50': '#fdf4f4',
+                '100': '#fbe9e9',
+                '200': '#f6d5d5',
+                '300': '#efb7b7',
+                '400': '#e38f8f',
+                '500': '#d36767',
+                '600': '#b55555',
+                '700': '#a43a3a', // Base color from logo
+                '800': '#8c2d2d',
+                '900': '#762929',
+                '950': '#401313',
+              }
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^18.2.0/",
+    "react": "https://aistudiocdn.com/react@^18.2.0",
+    "react/": "https://aistudiocdn.com/react@^18.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.552.0",
+    "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+  }
+}
+</script>
+</head>
+  <body class="bg-gray-100 dark:bg-gray-900 font-sans">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx?v=1.1"></script>
+  </body>
+</html>]]></content>
+  </change>
+  <change>
+    <file>App.tsx</file>
+    <description>Conteúdo completo para migração do projeto.</description>
+    <content><![CDATA[
+import React, { useState, useEffect, useCallback } from 'react';
+import { Sidebar } from './components/Sidebar';
+import { Header } from './components/Header';
+import { Dashboard } from './pages/Dashboard';
+import { Members } from './pages/Members';
+import { Financial } from './pages/Financial';
+import { Events } from './pages/Events';
+import { Documents } from './pages/Documents';
+import { Communications } from './pages/Communications';
+import { Settings } from './pages/Settings';
+import { Page, Member, Transaction, Event, Document, Communication } from './types';
+import { useAuth } from './contexts/AuthContext';
+import { Login } from './components/Login';
+import { supabase } from './supabaseClient';
+import { Loader2 } from 'lucide-react';
+
+// Helper function to convert object keys from snake_case to camelCase
+const snakeToCamel = (obj: any): any => {
+  if (obj === null || typeof obj !== 'object' || obj instanceof Date) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(v => snakeToCamel(v));
+  }
+  return Object.keys(obj).reduce((acc, key) => {
+    const camelKey = key.replace(/([-_][a-z])/g, (group) =>
+      group.toUpperCase().replace('-', '').replace('_', '')
+    );
+    acc[camelKey] = snakeToCamel(obj[key]);
+    return acc;
+  }, {} as { [key: string]: any });
+};
+
+// Helper function to convert object keys from camelCase to snake_case
+const camelToSnake = (obj: any): any => {
+  if (obj === null || typeof obj !== 'object' || obj instanceof Date) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(v => camelToSnake(v));
+  }
+  return Object.keys(obj).reduce((acc, key) => {
+    const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    acc[snakeKey] = camelToSnake(obj[key]);
+    return acc;
+  }, {} as { [key: string]: any });
+};
+
+
+const App: React.FC = () => {
+  const { currentUser, loading, users, addUser, updateUser, deleteUser } = useAuth();
+  const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
+  
+  // App data state
+  const [members, setMembers] = useState<Member[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [communications, setCommunications] = useState<Communication[]>([]);
+  const [appLoading, setAppLoading] = useState(true);
+
+  const generateErrorMessage = (action: string, error: any) => {
+    return `Erro ao ${action}: ${error.message}\n\nIsso geralmente acontece por falta de permissão no banco de dados. Verifique as políticas de segurança (RLS) no painel do Supabase para esta tabela.`;
+  };
+
+  const fetchData = useCallback(async () => {
+    if (!currentUser) return;
+    setAppLoading(true);
+    try {
+      const [membersRes, transactionsRes, eventsRes, documentsRes, communicationsRes] = await Promise.all([
+        supabase.from('members').select('*').order('name', { ascending: true }),
+        supabase.from('transactions').select('*').order('date', { ascending: false }),
+        supabase.from('events').select('*').order('date', { ascending: false }),
+        supabase.from('documents').select('*').order('upload_date', { ascending: false }),
+        supabase.from('communications').select('*').order('sent_at', { ascending: false })
+      ]);
+
+      if (membersRes.error) throw membersRes.error;
+      setMembers(snakeToCamel(membersRes.data) as Member[]);
+
+      if (transactionsRes.error) throw transactionsRes.error;
+      setTransactions(snakeToCamel(transactionsRes.data) as Transaction[]);
+      
+      if (eventsRes.error) throw eventsRes.error;
+      setEvents(snakeToCamel(eventsRes.data) as Event[]);
+      
+      if (documentsRes.error) throw documentsRes.error;
+      setDocuments(snakeToCamel(documentsRes.data) as Document[]);
+      
+      if (communicationsRes.error) throw communicationsRes.error;
+      setCommunications(snakeToCamel(communicationsRes.data) as Communication[]);
+
+    } catch (error: any) {
+      console.error("Error fetching data:", error.message);
+    } finally {
+      setAppLoading(false);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // CRUD Handlers
+  const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
+    const { data, error } = await supabase
+      .from('members')
+      .insert([camelToSnake(newMemberData)])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding member:', error);
+      alert(generateErrorMessage('adicionar membro', error));
+    } else if (data) {
+      setMembers(prev => [snakeToCamel(data) as Member, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
+    }
+  };
+
+  const handleUpdateMember = async (memberId: string, updatedData: Omit<Member, 'id

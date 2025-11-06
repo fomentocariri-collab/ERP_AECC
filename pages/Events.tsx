@@ -13,13 +13,13 @@ interface EventCardProps {
 }
 
 const EventCard: React.FC<EventCardProps> = ({ event, onEdit, onDelete, canPerformActions, isSubscribed, onSubscribe }) => (
-  <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md flex flex-col justify-between relative">
+  <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between relative border border-gray-200 dark:border-gray-700">
     {canPerformActions && (
       <div className="absolute top-4 right-4 flex gap-2">
         <button onClick={onEdit} className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300">
           <Edit size={16} />
         </button>
-        <button onClick={onDelete} className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 hover:text-secondary-700 dark:text-gray-300 dark:hover:text-secondary-500">
+        <button onClick={onDelete} className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 hover:text-primary-700 dark:text-gray-300 dark:hover:text-primary-500">
           <Trash2 size={16} />
         </button>
       </div>
@@ -147,7 +147,7 @@ export const Events: React.FC<EventsProps> = ({ events, onAddEvent, onUpdateEven
             ))}
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 p-10 rounded-xl shadow-md text-center text-gray-500 dark:text-gray-400">
+          <div className="bg-white dark:bg-gray-800 p-10 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400">
             <CalendarOff size={48} className="mx-auto mb-4" />
             <h3 className="text-lg font-semibold">Nenhum evento agendado</h3>
             <p className="text-sm">Clique em "Criar Evento" para adicionar o primeiro.</p>
