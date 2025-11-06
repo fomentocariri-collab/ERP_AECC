@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       role: profile.role,
       avatarUrl: profile.avatar_url,
     });
-  }, [currentUser]);
+  }, []);
 
   useEffect(() => {
     const getInitialSession = async () => {
@@ -64,6 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+         // Only update state if the user ID has actually changed
          if (session?.user?.id !== currentUser?.id) {
             await setUserProfile(session);
          }
@@ -73,7 +74,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => {
       subscription?.unsubscribe();
     };
-  }, [setUserProfile, currentUser]);
+    // currentUser is removed from dependency array to prevent loop
+  }, [setUserProfile]);
 
 
   const fetchUsers = useCallback(async () => {
@@ -134,6 +136,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     });
     
+    // Restore the admin session immediately after the sign-up call
     const { error: sessionError } = await supabase.auth.setSession(session);
     if (sessionError) {
         console.error("Error restoring admin session:", sessionError);
@@ -163,6 +166,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
          email: data.email
      };
 
+     // Remove undefined keys to avoid sending them to Supabase
      Object.keys(snakeCaseData).forEach(key => (snakeCaseData as any)[key] === undefined && delete (snakeCaseData as any)[key]);
 
      const { error } = await supabase.from('profiles').update(snakeCaseData).eq('id', userId);
@@ -174,6 +178,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      }
      
      await fetchUsers();
+     // If the updated user is the current user, refresh their profile
      if (currentUser && currentUser.id === userId) {
         const { data: { session } } = await supabase.auth.getSession();
         await setUserProfile(session);
@@ -181,6 +186,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   const deleteUser = async (userId: string) => {
+    // This is a placeholder as client-side deletion is insecure.
+    // Real implementation should call a Supabase Edge Function.
     alert("A exclusão de usuários deve ser feita através de uma função de servidor segura ou diretamente no painel do Supabase para evitar riscos de segurança.");
     console.warn(`Request to delete user ${userId} blocked on client-side.`);
   };
