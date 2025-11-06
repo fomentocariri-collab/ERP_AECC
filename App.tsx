@@ -12,7 +12,28 @@ import { Page, Member, Transaction, Event, Document, Communication } from './typ
 import { useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
 import { supabase } from './supabaseClient';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+
+// Toast Notification Component
+const Toast: React.FC<{ message: string; type: 'success' | 'error'; onClose: () => void }> = ({ message, type, onClose }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 5000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const isSuccess = type === 'success';
+  const bgColor = isSuccess ? 'bg-green-100 dark:bg-green-900/80' : 'bg-red-100 dark:bg-red-900/80';
+  const borderColor = isSuccess ? 'border-green-400 dark:border-green-700' : 'border-red-400 dark:border-red-700';
+  const textColor = isSuccess ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200';
+  const Icon = isSuccess ? CheckCircle2 : AlertCircle;
+
+  return (
+    <div className={`fixed top-20 right-6 p-4 rounded-lg shadow-2xl border ${bgColor} ${borderColor} ${textColor} flex items-center gap-3 z-50`}>
+      <Icon className="h-5 w-5" />
+      <p className="font-medium text-sm">{message}</p>
+    </div>
+  );
+};
 
 // Helper function to convert object keys from snake_case to camelCase
 const snakeToCamel = (obj: any): any => {
@@ -46,259 +67,190 @@ const camelToSnake = (obj: any): any => {
   }, {} as { [key: string]: any });
 };
 
-
 const App: React.FC = () => {
   const { currentUser, loading, users, addUser, updateUser, deleteUser } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
   
-  // App data state
   const [members, setMembers] = useState<Member[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [communications, setCommunications] = useState<Communication[]>([]);
   const [appLoading, setAppLoading] = useState(true);
-
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+  };
+  
   const generateErrorMessage = (action: string, error: any) => {
-    return `Erro ao ${action}: ${error.message}\n\nIsso geralmente acontece por falta de permissão no banco de dados. Verifique as políticas de segurança (RLS) no painel do Supabase para esta tabela.`;
+    return `Erro ao ${action}: ${error.message}. Verifique as permissões (RLS) no Supabase.`;
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-        if (!currentUser) {
-            setAppLoading(false);
-            return;
-        };
-        
-        setAppLoading(true);
-        try {
-          const [membersRes, transactionsRes, eventsRes, documentsRes, communicationsRes] = await Promise.all([
-            supabase.from('members').select('*').order('name', { ascending: true }),
-            supabase.from('transactions').select('*').order('date', { ascending: false }),
-            supabase.from('events').select('*').order('date', { ascending: false }),
-            supabase.from('documents').select('*').order('upload_date', { ascending: false }),
-            supabase.from('communications').select('*').order('sent_at', { ascending: false })
-          ]);
-    
-          if (membersRes.error) throw membersRes.error;
-          setMembers(snakeToCamel(membersRes.data) as Member[]);
-    
-          if (transactionsRes.error) throw transactionsRes.error;
-          setTransactions(snakeToCamel(transactionsRes.data) as Transaction[]);
-          
-          if (eventsRes.error) throw eventsRes.error;
-          setEvents(snakeToCamel(eventsRes.data) as Event[]);
-          
-          if (documentsRes.error) throw documentsRes.error;
-          setDocuments(snakeToCamel(documentsRes.data) as Document[]);
-          
-          if (communicationsRes.error) throw communicationsRes.error;
-          setCommunications(snakeToCamel(communicationsRes.data) as Communication[]);
-    
-        } catch (error: any) {
-          console.error("Error fetching data:", error.message);
-          alert(`Falha ao carregar os dados: ${error.message}`);
-        } finally {
+  const fetchData = useCallback(async () => {
+      if (!currentUser) {
           setAppLoading(false);
+          return;
+      };
+      
+      setAppLoading(true);
+      try {
+        const [membersRes, transactionsRes, eventsRes, documentsRes, communicationsRes] = await Promise.all([
+          supabase.from('members').select('*').order('name', { ascending: true }),
+          supabase.from('transactions').select('*').order('date', { ascending: false }),
+          supabase.from('events').select('*').order('date', { ascending: false }),
+          supabase.from('documents').select('*').order('upload_date', { ascending: false }),
+          supabase.from('communications').select('*').order('sent_at', { ascending: false })
+        ]);
+  
+        // Check for errors in all promises
+        const errors = [membersRes, transactionsRes, eventsRes, documentsRes, communicationsRes].map(res => res.error).filter(Boolean);
+        if (errors.length > 0) {
+          throw new Error(errors.map(e => e!.message).join(', '));
         }
-    };
+  
+        setMembers(snakeToCamel(membersRes.data) as Member[]);
+        setTransactions(snakeToCamel(transactionsRes.data) as Transaction[]);
+        setEvents(snakeToCamel(eventsRes.data) as Event[]);
+        setDocuments(snakeToCamel(documentsRes.data) as Document[]);
+        setCommunications(snakeToCamel(communicationsRes.data) as Communication[]);
+  
+      } catch (error: any) {
+        console.error("Error fetching data:", error.message);
+        showToast(`Falha ao carregar dados: ${error.message}`, 'error');
+      } finally {
+        setAppLoading(false);
+      }
+  }, [currentUser]); // Dependency only on currentUser
 
+  useEffect(() => {
+    // This effect now correctly depends on `fetchData` which is stable due to useCallback.
+    // It will run when the user logs in/out.
     if (currentUser) {
       fetchData();
     } else {
+      // Clear data on logout
+      setMembers([]);
+      setTransactions([]);
+      setEvents([]);
+      setDocuments([]);
+      setCommunications([]);
       setAppLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser, fetchData]);
 
-
-  // CRUD Handlers
-  const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
-    const { data, error } = await supabase
-      .from('members')
-      .insert([camelToSnake(newMemberData)])
-      .select()
-      .single();
-
+  const createCrudHandler = <T, K>(
+    tableName: string, 
+    onSuccess: (message: string) => void, 
+    operation: () => Promise<{ data: K | null; error: any }>
+  ) => async () => {
+    const { error } = await operation();
     if (error) {
-      console.error('Error adding member:', error);
-      alert(generateErrorMessage('adicionar membro', error));
-    } else if (data) {
-      setMembers(prev => [snakeToCamel(data) as Member, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
+      showToast(generateErrorMessage(`executar operação em ${tableName}`, error), 'error');
+    } else {
+      onSuccess(`Operação em ${tableName} bem-sucedida!`);
+      await fetchData(); // Refresh all data to ensure consistency
     }
+  };
+
+  const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
+    // FIX: Make the operation function async to ensure it returns a Promise.
+    await createCrudHandler('members', (m) => showToast(m), async () => 
+      supabase.from('members').insert([camelToSnake(newMemberData)]).select().single()
+    )();
   };
 
   const handleUpdateMember = async (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => {
-    const { data, error } = await supabase
-      .from('members')
-      .update(camelToSnake(updatedData))
-      .eq('id', memberId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating member:', error);
-      alert(generateErrorMessage('atualizar membro', error));
-    } else if (data) {
-      setMembers(prev => prev.map(m => m.id === memberId ? snakeToCamel(data) as Member : m));
-    }
+    // FIX: Make the operation function async to ensure it returns a Promise.
+     await createCrudHandler('members', (m) => showToast(m), async () => 
+      supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId).select().single()
+    )();
   };
   
   const handleDeleteMember = async (memberId: string) => {
-    const { error } = await supabase.from('members').delete().eq('id', memberId);
-    if (error) {
-      console.error('Error deleting member:', error);
-      alert(generateErrorMessage('excluir membro', error));
-    } else {
-      setMembers(prev => prev.filter(m => m.id !== memberId));
-    }
+    // FIX: Make the operation function async to ensure it returns a Promise.
+    await createCrudHandler('members', (m) => showToast(m), async () => 
+      supabase.from('members').delete().eq('id', memberId)
+    )();
   };
 
   const handleAddTransaction = async (newTransactionData: Omit<Transaction, 'id'>) => {
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert([camelToSnake(newTransactionData)])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error adding transaction:', error);
-      alert(generateErrorMessage('adicionar transação', error));
-    } else if (data) {
-      setTransactions(prev => [snakeToCamel(data) as Transaction, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    }
+    // FIX: Make the operation function async to ensure it returns a Promise.
+    await createCrudHandler('transactions', (m) => showToast(m), async () => 
+      supabase.from('transactions').insert([camelToSnake(newTransactionData)]).select().single()
+    )();
   };
 
   const handleDeleteTransaction = async (transactionId: string) => {
-    const { error } = await supabase.from('transactions').delete().eq('id', transactionId);
-    if (error) {
-      console.error('Error deleting transaction:', error);
-      alert(generateErrorMessage('excluir transação', error));
-    } else {
-      setTransactions(prev => prev.filter(t => t.id !== transactionId));
-    }
+    // FIX: Make the operation function async to ensure it returns a Promise.
+    await createCrudHandler('transactions', (m) => showToast(m), async () => 
+      supabase.from('transactions').delete().eq('id', transactionId)
+    )();
   };
   
   const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
-    const { data, error } = await supabase
-      .from('events')
-      .insert([camelToSnake(newEventData)])
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error adding event:', error);
-      alert(generateErrorMessage('adicionar evento', error));
-    } else if (data) {
-      setEvents(prev => [snakeToCamel(data) as Event, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    }
+    // FIX: Make the operation function async to ensure it returns a Promise.
+    await createCrudHandler('events', (m) => showToast(m), async () => 
+      supabase.from('events').insert([camelToSnake(newEventData)]).select().single()
+    )();
   };
 
   const handleUpdateEvent = async (eventId: string, updatedData: Omit<Event, 'id'>) => {
-    const { data, error } = await supabase
-      .from('events')
-      .update(camelToSnake(updatedData))
-      .eq('id', eventId)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error updating event:', error);
-      alert(generateErrorMessage('atualizar evento', error));
-    } else if (data) {
-      setEvents(prev => prev.map(e => e.id === eventId ? snakeToCamel(data) as Event : e));
-    }
+    // FIX: Make the operation function async to ensure it returns a Promise.
+    await createCrudHandler('events', (m) => showToast(m), async () => 
+      supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId).select().single()
+    )();
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-    const { error } = await supabase.from('events').delete().eq('id', eventId);
-    if (error) {
-      console.error('Error deleting event:', error);
-      alert(generateErrorMessage('excluir evento', error));
-    } else {
-      setEvents(prev => prev.filter(e => e.id !== eventId));
-    }
+    // FIX: Make the operation function async to ensure it returns a Promise.
+     await createCrudHandler('events', (m) => showToast(m), async () => 
+      supabase.from('events').delete().eq('id', eventId)
+    )();
   };
 
   const handleAddDocument = async (docData: Omit<Document, 'id' | 'url'>, file: File) => {
     const filePath = `${currentUser!.id}/${new Date().getTime()}-${file.name}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(filePath, file);
+    const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
 
     if (uploadError) {
-      console.error('Error uploading file:', uploadError);
-      alert(generateErrorMessage('carregar arquivo', uploadError));
+      showToast(generateErrorMessage('carregar arquivo', uploadError), 'error');
       return;
     }
 
-    const { data: urlData } = supabase.storage
-      .from('documents')
-      .getPublicUrl(filePath);
-
+    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
     if (!urlData.publicUrl) {
-        alert("Não foi possível obter a URL pública do arquivo.");
-        await supabase.storage.from('documents').remove([filePath]);
-        return;
-    }
-
-    const documentToInsert = {
-      ...camelToSnake(docData),
-      url: urlData.publicUrl,
-    };
-    
-    const { data, error: insertError } = await supabase
-      .from('documents')
-      .insert([documentToInsert])
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error('Error adding document record:', insertError);
-      alert(generateErrorMessage('adicionar registro de documento', insertError));
+      showToast("Não foi possível obter a URL pública do arquivo.", 'error');
       await supabase.storage.from('documents').remove([filePath]);
-    } else if (data) {
-      setDocuments(prev => [snakeToCamel(data) as Document, ...prev].sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()));
+      return;
     }
+
+    // FIX: Make the operation function async to ensure it returns a Promise.
+    await createCrudHandler('documents', (m) => showToast(m), async () => 
+      supabase.from('documents').insert([{ ...camelToSnake(docData), url: urlData.publicUrl }]).select().single()
+    )();
   };
 
   const handleDeleteDocument = async (doc: Document) => {
     try {
         const url = new URL(doc.url);
         const filePath = url.pathname.split('/documents/')[1];
-
         if (filePath) {
-            const { error: storageError } = await supabase.storage.from('documents').remove([decodeURIComponent(filePath)]);
-            if (storageError) {
-                console.error('Error deleting file from storage:', storageError);
-            }
+            await supabase.storage.from('documents').remove([decodeURIComponent(filePath)]);
         }
-    } catch(e) {
-        console.error("Could not parse URL to delete from storage:", doc.url, e);
-    }
+    } catch(e) { console.error("Could not parse URL to delete from storage:", doc.url, e); }
     
-    const { error } = await supabase.from('documents').delete().eq('id', doc.id);
-    if (error) {
-      console.error('Error deleting document:', error);
-      alert(generateErrorMessage('excluir documento', error));
-    } else {
-      setDocuments(prev => prev.filter(d => d.id !== doc.id));
-    }
+    // FIX: Make the operation function async to ensure it returns a Promise.
+    await createCrudHandler('documents', (m) => showToast(m), async () => 
+      supabase.from('documents').delete().eq('id', doc.id)
+    )();
   };
   
   const handleAddCommunication = async (newCommunicationData: Omit<Communication, 'id'>) => {
-    const { data, error } = await supabase
-      .from('communications')
-      .insert([camelToSnake(newCommunicationData)])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error adding communication:', error);
-      alert(generateErrorMessage('adicionar comunicação', error));
-    } else if (data) {
-      setCommunications(prev => [snakeToCamel(data) as Communication, ...prev].sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()));
-    }
+    // FIX: Make the operation function async to ensure it returns a Promise.
+    await createCrudHandler('communications', (m) => showToast(m), async () => 
+      supabase.from('communications').insert([camelToSnake(newCommunicationData)]).select().single()
+    )();
   };
 
   const renderPage = () => {
@@ -317,7 +269,7 @@ const App: React.FC = () => {
       case 'Communications':
         return <Communications members={members} communications={communications} onAddCommunication={handleAddCommunication} userRole={currentUser.role} />;
       case 'Settings':
-        return <Settings currentUser={currentUser} users={users} onUpdateUser={updateUser} onAddUser={addUser} onDeleteUser={deleteUser} />;
+        return <Settings currentUser={currentUser} users={users} onUpdateUser={updateUser} onAddUser={addUser} onDeleteUser={deleteUser} showToast={showToast} />;
       default:
         return <Dashboard members={members} transactions={transactions} events={events} />;
     }
@@ -336,21 +288,24 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} user={currentUser} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header title={currentPage} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
-          {appLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="h-12 w-12 animate-spin text-primary-700" />
-            </div>
-          ) : (
-            renderPage()
-          )}
-        </main>
+    <>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} user={currentUser} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header title={currentPage} />
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
+            {appLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-12 w-12 animate-spin text-primary-700" />
+              </div>
+            ) : (
+              renderPage()
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

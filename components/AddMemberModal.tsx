@@ -5,7 +5,7 @@ import { X, UserSquare } from 'lucide-react';
 interface AddMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (member: Omit<Member, 'id'>) => void;
+  onSave: (member: Omit<Member, 'id'>) => Promise<void>;
   existingMember?: Member | null;
 }
 
@@ -25,6 +25,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
   const [role, setRole] = useState<MemberRole>('Associado');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const isEditing = !!existingMember;
 
@@ -42,6 +43,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
     setRole('Associado');
     setAvatarUrl('');
     setError('');
+    setIsSaving(false);
   };
 
   useEffect(() => {
@@ -81,13 +83,14 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
     return null;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !admissionDate) {
       setError('Nome, Email e Data de Admissão são obrigatórios.');
       return;
     }
     setError('');
+    setIsSaving(true);
     
     const memberData: Omit<Member, 'id'> = { 
         name, 
@@ -104,7 +107,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
         avatarUrl: avatarUrl || `https://i.pravatar.cc/150?u=${email}`
     };
 
-    onSave(memberData);
+    await onSave(memberData);
+    setIsSaving(false);
     onClose();
   };
 
@@ -222,15 +226,17 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait"
             >
-              {isEditing ? 'Salvar Alterações' : 'Salvar Membro'}
+              {isSaving ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Salvar Membro')}
             </button>
           </div>
         </form>

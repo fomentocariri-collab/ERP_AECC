@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  onAddTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
   members: Member[];
 }
 
@@ -20,6 +20,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [memberId, setMemberId] = useState<string>('');
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const showMemberSelector = MEMBER_RELATED_DESCRIPTIONS.includes(description);
   
@@ -40,9 +41,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
     setDate(new Date().toISOString().split('T')[0]);
     setMemberId('');
     setError('');
+    setIsSaving(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !amount || !date) {
       setError('Descrição, Valor e Data são obrigatórios.');
@@ -52,11 +54,12 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
         setError('Por favor, selecione um membro.');
         return;
     }
+    setError('');
+    setIsSaving(true);
 
     const selectedMember = members.find(m => m.id === memberId);
 
-    setError('');
-    onAddTransaction({
+    await onAddTransaction({
       description,
       amount: parseFloat(amount),
       type,
@@ -64,6 +67,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
       memberId: showMemberSelector ? memberId : undefined,
       memberName: showMemberSelector ? selectedMember?.name : undefined,
     });
+    
+    setIsSaving(false);
     resetForm();
     onClose();
   };
@@ -138,15 +143,17 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait"
             >
-              Salvar Transação
+              {isSaving ? 'Salvando...' : 'Salvar Transação'}
             </button>
           </div>
         </form>

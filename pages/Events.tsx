@@ -56,9 +56,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, onEdit, onDelete, canPerfo
 
 interface EventsProps {
   events: Event[];
-  onAddEvent: (newEvent: Omit<Event, 'id'>) => void;
-  onUpdateEvent: (eventId: string, updatedData: Omit<Event, 'id'>) => void;
-  onDeleteEvent: (eventId: string) => void;
+  onAddEvent: (newEvent: Omit<Event, 'id'>) => Promise<void>;
+  onUpdateEvent: (eventId: string, updatedData: Omit<Event, 'id'>) => Promise<void>;
+  onDeleteEvent: (eventId: string) => Promise<void>;
   userRole: UserRole;
 }
 
@@ -85,17 +85,17 @@ export const Events: React.FC<EventsProps> = ({ events, onAddEvent, onUpdateEven
     setEditingEvent(null);
   };
 
-  const handleSaveEvent = (data: Omit<Event, 'id'>) => {
+  const handleSaveEvent = async (data: Omit<Event, 'id'>) => {
     if (editingEvent) {
-      onUpdateEvent(editingEvent.id, data);
+      await onUpdateEvent(editingEvent.id, data);
     } else {
-      onAddEvent(data);
+      await onAddEvent(data);
     }
   };
 
-  const handleDelete = (eventId: string) => {
+  const handleDelete = async (eventId: string) => {
     if (window.confirm('Tem certeza que deseja excluir/cancelar este evento?')) {
-      onDeleteEvent(eventId);
+      await onDeleteEvent(eventId);
     }
   };
 

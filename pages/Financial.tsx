@@ -6,8 +6,8 @@ import { AddTransactionModal } from '../components/AddTransactionModal';
 interface FinancialProps {
     transactions: Transaction[];
     members: Member[];
-    onAddTransaction: (newTransaction: Omit<Transaction, 'id'>) => void;
-    onDeleteTransaction: (transactionId: string) => void;
+    onAddTransaction: (newTransaction: Omit<Transaction, 'id'>) => Promise<void>;
+    onDeleteTransaction: (transactionId: string) => Promise<void>;
     userRole: UserRole;
 }
 
@@ -20,9 +20,9 @@ export const Financial: React.FC<FinancialProps> = ({ transactions, members, onA
     const totalExpense = transactions.filter(t => t.type === 'Expense').reduce((acc, t) => acc + t.amount, 0);
     const balance = totalIncome - totalExpense;
     
-    const handleDelete = (transactionId: string) => {
+    const handleDelete = async (transactionId: string) => {
         if (window.confirm('Tem certeza que deseja excluir esta transação?')) {
-            onDeleteTransaction(transactionId);
+            await onDeleteTransaction(transactionId);
         }
     };
 

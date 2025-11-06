@@ -7,7 +7,7 @@ const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focu
 interface CommunicationsProps {
     members: Member[];
     communications: Communication[];
-    onAddCommunication: (communication: Omit<Communication, 'id'>) => void;
+    onAddCommunication: (communication: Omit<Communication, 'id'>) => Promise<void>;
     userRole: UserRole;
 }
 
@@ -18,7 +18,7 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
 
     const canPerformActions = userRole === 'Super Admin' || userRole === 'Financeiro';
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!subject || !message) {
             alert('Assunto e Mensagem são obrigatórios.');
@@ -35,7 +35,7 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
             recipientText = selectedMember ? selectedMember.name : 'Desconhecido';
         }
 
-        onAddCommunication({
+        await onAddCommunication({
             subject,
             message,
             recipients: recipientText,

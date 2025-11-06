@@ -24,6 +24,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
   const [expanded, setExpanded] = useState(true);
   const { logout } = useAuth();
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  };
+
   return (
     <aside className="h-screen sticky top-0">
       <nav className="h-full flex flex-col bg-white dark:bg-gray-800 border-r dark:border-gray-700 shadow-sm">
@@ -86,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
             </div>
           </div>
           <button 
-            onClick={logout} 
+            onClick={handleLogout} 
             className={`
               relative flex items-center justify-start w-full py-2 px-3 mt-4
               font-medium rounded-md cursor-pointer

@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 interface AddUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (user: { name: string; email: string; role: UserRole; password?: string; }) => void;
+  onSave: (user: { name: string; email: string; role: UserRole; password?: string; }) => Promise<void>;
   existingUser?: User | null;
 }
 
@@ -19,6 +19,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onS
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('Associado');
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const isEditing = !!existingUser;
 
@@ -46,19 +47,22 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onS
     setPassword('');
     setRole('Associado');
     setError('');
+    setIsSaving(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || (!isEditing && !password)) {
       setError('Nome, Email e Senha são obrigatórios para novos usuários.');
       return;
     }
     setError('');
+    setIsSaving(true);
 
     const userData = { name, email, role, ...(password && { password }) };
     
-    onSave(userData);
+    await onSave(userData);
+    setIsSaving(false);
     resetForm();
     onClose();
   };
@@ -108,15 +112,17 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onS
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait"
             >
-              Salvar Usuário
+              {isSaving ? 'Salvando...' : 'Salvar Usuário'}
             </button>
           </div>
         </form>

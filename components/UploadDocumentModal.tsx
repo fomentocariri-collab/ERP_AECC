@@ -16,6 +16,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [docType, setDocType] = useState<DocumentType>('Report');
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   if (!isOpen) {
     return null;
@@ -25,6 +26,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
     setSelectedFile(null);
     setDocType('Report');
     setError('');
+    setIsSaving(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,6 +42,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
       return;
     }
     setError('');
+    setIsSaving(true);
     
     const newDocumentData = {
         name: selectedFile.name,
@@ -49,6 +52,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
     };
 
     await onAddDocument(newDocumentData, selectedFile);
+    setIsSaving(false);
     resetForm();
     onClose();
   };
@@ -102,15 +106,17 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait"
             >
-              Salvar Documento
+              {isSaving ? 'Salvando...' : 'Salvar Documento'}
             </button>
           </div>
         </form>

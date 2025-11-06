@@ -54,11 +54,11 @@ export const Members: React.FC<MembersProps> = ({ members, onAddMember, onUpdate
     setEditingMember(null);
   };
 
-  const handleSaveMember = (data: Omit<Member, 'id'>) => {
+  const handleSaveMember = async (data: Omit<Member, 'id'>) => {
     if (editingMember) {
-      onUpdateMember(editingMember.id, data);
+      await onUpdateMember(editingMember.id, data);
     } else {
-      onAddMember(data);
+      await onAddMember(data);
     }
   };
   

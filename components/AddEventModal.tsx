@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 interface AddEventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (event: Omit<Event, 'id'>) => void;
+  onSave: (event: Omit<Event, 'id'>) => Promise<void>;
   existingEvent?: Event | null;
 }
 
@@ -21,6 +21,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, o
   const [type, setType] = useState<EventType>('Reunião Ordinária');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const isEditing = !!existingEvent;
 
@@ -32,6 +33,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, o
     setType('Reunião Ordinária');
     setDescription('');
     setError('');
+    setIsSaving(false);
   };
 
   useEffect(() => {
@@ -53,16 +55,18 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, o
     return null;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !date || !time || !location) {
       setError('Todos os campos, exceto descrição, são obrigatórios.');
       return;
     }
     setError('');
-    onSave({ 
+    setIsSaving(true);
+    await onSave({ 
         title, date, time, location, description, type
     });
+    setIsSaving(false);
     onClose();
   };
 
@@ -122,15 +126,17 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, o
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait"
             >
-              {isEditing ? 'Salvar Alterações' : 'Salvar Evento'}
+              {isSaving ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Salvar Evento')}
             </button>
           </div>
         </form>

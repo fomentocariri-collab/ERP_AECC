@@ -11,6 +11,7 @@ interface SettingsProps {
     onUpdateUser: (userId: string, data: Partial<User>) => Promise<void>;
     onAddUser: (user: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
+    showToast: (message: string, type?: 'success' | 'error') => void;
 }
 
 const SettingsSection: React.FC<{ title: string; description: string; children: React.ReactNode }> = ({ title, description, children }) => (
@@ -25,7 +26,7 @@ const SettingsSection: React.FC<{ title: string; description: string; children: 
     </div>
 );
 
-export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdateUser, onAddUser, onDeleteUser }) => {
+export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdateUser, onAddUser, onDeleteUser, showToast }) => {
     const [name, setName] = useState(currentUser.name);
     const [email, setEmail] = useState(currentUser.email);
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -33,13 +34,17 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
 
     const handleProfileSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await onUpdateUser(currentUser.id, { name, email });
-        alert('Perfil atualizado com sucesso!');
+        try {
+            await onUpdateUser(currentUser.id, { name, email });
+            showToast('Perfil atualizado com sucesso!');
+        } catch (error: any) {
+            showToast(`Erro: ${error.message}`, 'error');
+        }
     };
     
     const handleDelete = (userId: string) => {
         if (currentUser?.id === userId) {
-            alert("Você não pode excluir seu próprio usuário.");
+            showToast("Você não pode excluir seu próprio usuário.", 'error');
             return;
         }
         if (window.confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) {
@@ -63,7 +68,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
             await onUpdateUser(editingUser.id, profileData);
         } else {
             if (!data.password) {
-                alert("A senha é obrigatória para criar um novo usuário.");
+                showToast("A senha é obrigatória para criar um novo usuário.", 'error');
                 return;
             }
             const newUserPayload = {
