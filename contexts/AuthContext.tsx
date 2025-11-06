@@ -34,10 +34,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     if (error) {
       console.error("Erro ao buscar perfil do usuário:", error.message);
-      if (currentUser) {
-          alert("Falha ao buscar seu perfil de usuário. Isso geralmente é causado por uma política de segurança (RLS) na tabela 'profiles'. Verifique as permissões no painel do Supabase. Você será desconectado.");
-      }
-      // Don't sign out here, let the auth state change handle it.
+      // Don't show alert here, it can be annoying on initial load if RLS is strict.
+      // The calling function will handle user state.
       return null;
     }
     
@@ -48,24 +46,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       role: profile.role,
       avatarUrl: profile.avatar_url,
     };
-  }, [currentUser]); // Keep currentUser dependency to show alert correctly
+  }, []);
 
   useEffect(() => {
     setLoading(true);
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const userProfile = await fetchUserProfile(session?.user ?? null);
-      setCurrentUser(userProfile);
-      setLoading(false);
-    });
-
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         const userProfile = await fetchUserProfile(session?.user ?? null);
         setCurrentUser(userProfile);
-        // We set loading to false here as well, covering login/logout events
-        if(loading) setLoading(false); 
+        setLoading(false); 
       }
     );
 
@@ -104,7 +93,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, pass: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) throw error;
+    if (error) throw new Error("Usuário ou senha inválidos.");
   };
 
   const logout = useCallback(async () => {
@@ -120,9 +109,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!adminSession) {
         throw new Error("Sessão de administrador não encontrada. Por favor, faça login novamente.");
     }
-
-    // Temporarily sign out the admin to sign up the new user
-    // This is a Supabase client-side limitation. A server-side function would be better.
+    
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -135,27 +122,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     });
     
-    // Restore the admin session immediately after the sign-up call
     const { error: sessionError } = await supabase.auth.setSession(adminSession);
     if (sessionError) {
         console.error("Error restoring admin session:", sessionError);
         alert("Erro crítico: A sessão do administrador não pôde ser restaurada. Por favor, atualize a página.");
+        logout();
         return;
     }
-    // Also re-fetch the admin profile
+    
     const adminProfile = await fetchUserProfile(adminSession.user);
     setCurrentUser(adminProfile);
 
-
     if (signUpError) {
-        console.error('Error creating user:', signUpError);
-        alert(`Erro ao criar usuário: ${signUpError.message}`);
-        return;
+        throw new Error(`Erro ao criar usuário: ${signUpError.message}`);
     }
 
     if (!signUpData.user) {
-        alert("Não foi possível criar o usuário. Tente novamente.");
-        return;
+        throw new Error("Não foi possível criar o usuário. Tente novamente.");
     }
     
     await fetchUsers();
@@ -174,9 +157,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      const { error } = await supabase.from('profiles').update(snakeCaseData).eq('id', userId);
 
      if (error) {
-        console.error('Error updating user profile:', error);
-        alert(`Erro ao atualizar usuário: ${error.message}\n\nVerifique as permissões (RLS) para a tabela 'profiles'.`);
-        return;
+        throw new Error(`Erro ao atualizar usuário: ${error.message}\n\nVerifique as permissões (RLS) para a tabela 'profiles'.`);
      }
      
      await fetchUsers();
@@ -194,7 +175,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const value = { currentUser, loading, users, login, logout, addUser, updateUser, deleteUser };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

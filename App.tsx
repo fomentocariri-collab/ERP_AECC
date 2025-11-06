@@ -8,7 +8,7 @@ import { Events } from './pages/Events';
 import { Documents } from './pages/Documents';
 import { Communications } from './pages/Communications';
 import { Settings } from './pages/Settings';
-import { Page, Member, Transaction, Event, Document, Communication, User } from './types';
+import { Page, Member, Transaction, Event, Document, Communication } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
 import { supabase } from './supabaseClient';
@@ -92,7 +92,6 @@ const App: React.FC = () => {
 
     } catch (error: any) {
       console.error("Error fetching data:", error.message);
-      alert(`Erro ao buscar dados: ${error.message}. Verifique suas permissões (RLS) no Supabase.`);
     } finally {
       setAppLoading(false);
     }
@@ -101,14 +100,6 @@ const App: React.FC = () => {
   useEffect(() => {
     if (currentUser) {
         fetchData();
-    } else {
-        // Clear data on logout
-        setAppLoading(false);
-        setMembers([]);
-        setTransactions([]);
-        setEvents([]);
-        setDocuments([]);
-        setCommunications([]);
     }
   }, [currentUser, fetchData]);
 
