@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -121,7 +119,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleUpdateMember = async (memberId: string, updatedData: Omit<Member, 'id'>) => {
+  const handleUpdateMember = async (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => {
     const { data, error } = await supabase
       .from('members')
       .update(camelToSnake(updatedData))
@@ -143,7 +141,6 @@ const App: React.FC = () => {
       console.error('Error deleting member:', error);
       alert(generateErrorMessage('excluir membro', error));
     } else {
-      // FIX: Corrected arrow function syntax
       setMembers(prev => prev.filter(m => m.id !== memberId));
     }
   };
@@ -173,7 +170,7 @@ const App: React.FC = () => {
     }
   };
   
-    const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
+  const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
     const { data, error } = await supabase
       .from('events')
       .insert([camelToSnake(newEventData)])
@@ -266,7 +263,6 @@ const App: React.FC = () => {
             const { error: storageError } = await supabase.storage.from('documents').remove([decodeURIComponent(filePath)]);
             if (storageError) {
                 console.error('Error deleting file from storage:', storageError);
-                // Allow proceeding to DB deletion even if storage deletion fails, to avoid orphaned records.
             }
         }
     } catch(e) {
@@ -322,7 +318,7 @@ const App: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
-        <Loader2 className="h-12 w-12 animate-spin text-primary-600" />
+        <Loader2 className="h-12 w-12 animate-spin text-primary-700" />
       </div>
     );
   }
@@ -339,7 +335,7 @@ const App: React.FC = () => {
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
           {appLoading ? (
             <div className="flex items-center justify-center h-full">
-              <Loader2 className="h-12 w-12 animate-spin text-primary-600" />
+              <Loader2 className="h-12 w-12 animate-spin text-primary-700" />
             </div>
           ) : (
             renderPage()

@@ -74,8 +74,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
               relative flex items-center justify-start w-full py-2 px-3 mt-4
               font-medium rounded-md cursor-pointer
               transition-colors group
-              bg-gray-100 hover:bg-primary-100 text-gray-800 hover:text-primary-700
-              dark:bg-gray-700 dark:hover:bg-primary-900/50 dark:text-gray-300 dark:hover:text-primary-300
+              bg-gray-100 hover:bg-red-100 text-gray-800 hover:text-red-700
+              dark:bg-gray-700 dark:hover:bg-red-900/50 dark:text-gray-300 dark:hover:text-red-300
             `}
           >
             <LogOut size={20} />

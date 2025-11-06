@@ -127,7 +127,6 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
             
             <div className="flex flex-col sm:flex-row gap-6 items-start">
-                {/* Photo Upload */}
                 <div className="flex-shrink-0">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Foto do Perfil</label>
                     <div className="mt-1 flex flex-col items-center">
@@ -145,7 +144,6 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
                     </div>
                 </div>
 
-                {/* Form Fields */}
                 <div className="flex-grow space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -174,8 +172,6 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
                 </div>
             </div>
 
-
-            {/* --- Address Info --- */}
             <div className="border-t dark:border-gray-700 pt-4">
                  <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Endereço</h3>
             </div>
@@ -194,7 +190,6 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
                 </div>
             </div>
             
-            {/* --- Association Info --- */}
              <div className="border-t dark:border-gray-700 pt-4">
                  <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Associação</h3>
             </div>

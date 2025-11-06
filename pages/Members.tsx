@@ -17,7 +17,7 @@ const getStatusBadge = (status: Member['status']) => {
 interface MembersProps {
   members: Member[];
   onAddMember: (newMember: Omit<Member, 'id'>) => Promise<void>;
-  onUpdateMember: (memberId: string, updatedData: Omit<Member, 'id'>) => Promise<void>;
+  onUpdateMember: (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => Promise<void>;
   onDeleteMember: (memberId: string) => Promise<void>;
   userRole: UserRole;
 }

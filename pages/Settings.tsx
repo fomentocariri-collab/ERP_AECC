@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
-import { PlusCircle, Edit, Trash2, Shield, Users } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Shield } from 'lucide-react';
 import { AddUserModal } from '../components/AddUserModal';
 
 const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500";
@@ -59,26 +59,22 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
     
     const handleSaveUser = async (data: { name: string; email: string; role: UserRole; password?: string; }) => {
         if (editingUser) {
-            // When editing, we only update profile data, not the password.
             const { password, ...profileData } = data;
             await onUpdateUser(editingUser.id, profileData);
         } else {
-            // When adding a new user, password is required.
             if (!data.password) {
                 alert("A senha é obrigatória para criar um novo usuário.");
                 return;
             }
-            // Ensure the payload matches the exact type required by `onAddUser`.
             const newUserPayload = {
                 name: data.name,
                 email: data.email,
                 role: data.role,
-                password: data.password, // Now guaranteed to be a string.
+                password: data.password,
             };
             await onAddUser(newUserPayload);
         }
     }
-
 
     return (
         <>

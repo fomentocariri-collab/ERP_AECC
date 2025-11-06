@@ -3,7 +3,6 @@ import { User, UserRole } from '../types';
 import { supabase } from '../supabaseClient';
 import type { Session } from '@supabase/supabase-js';
 
-
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
@@ -34,23 +33,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .eq('id', session.user.id)
       .single();
     
-    // CRITICAL: If profile read fails, log out with a clear error.
     if (error || !profile) {
       console.error("Erro ao buscar perfil do usuário:", error?.message);
-      
-      // Prevent alert loop if there's no active user to begin with.
       if (currentUser) {
           alert("Falha ao buscar seu perfil de usuário. Isso geralmente é causado por uma política de segurança (RLS) na tabela 'profiles' que impede a leitura. Verifique as permissões no painel do Supabase. Você será desconectado.");
       }
       
-      // Ensure logout happens
-      // FIX: Corrected Supabase v2 API call for signing out.
       await supabase.auth.signOut();
       setCurrentUser(null);
       return;
     }
     
-    // On success, set the user profile
     setCurrentUser({
       id: profile.id,
       email: profile.email,
@@ -58,24 +51,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       role: profile.role,
       avatarUrl: profile.avatar_url,
     });
-  }, [currentUser]); // Dependency added to avoid stale state in the closure
+  }, [currentUser]);
 
   useEffect(() => {
-    // 1. Initial check on load
     const getInitialSession = async () => {
-      // FIX: Corrected Supabase v2 API call to get the current session.
       const { data: { session } } = await supabase.auth.getSession();
       await setUserProfile(session);
-      setLoading(false); // Stop loading ONLY after the initial check
+      setLoading(false);
     };
 
     getInitialSession();
 
-    // 2. Listener for subsequent changes (login/logout in other tabs)
-    // FIX: Corrected Supabase v2 API call to listen for auth state changes.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        // We don't want the listener to manage the initial loading state, but we need to react to changes
          if (session?.user?.id !== currentUser?.id) {
             await setUserProfile(session);
          }
@@ -116,28 +104,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [currentUser, fetchUsers]);
 
   const login = async (email: string, pass: string) => {
-    // FIX: Corrected Supabase v2 API call for signing in with a password.
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
   };
 
   const logout = useCallback(async () => {
-    // FIX: Corrected Supabase v2 API call for signing out.
     const { error } = await supabase.auth.signOut();
-    setCurrentUser(null); // Explicitly clear user state for immediate UI update
+    setCurrentUser(null);
     if (error) {
         console.error('Error logging out:', error.message);
     }
   }, []);
 
   const addUser = async (userData: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => {
-    // FIX: Corrected Supabase v2 API call to get the current session.
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
         throw new Error("Sessão de administrador não encontrada. Por favor, faça login novamente.");
     }
 
-    // FIX: Corrected Supabase v2 API call for signing up a new user.
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -150,8 +134,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     });
     
-    // Restore the admin session immediately after sign up
-    // FIX: Corrected Supabase v2 API call to set the session.
     const { error: sessionError } = await supabase.auth.setSession(session);
     if (sessionError) {
         console.error("Error restoring admin session:", sessionError);
@@ -193,7 +175,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      
      await fetchUsers();
      if (currentUser && currentUser.id === userId) {
-        // FIX: Corrected Supabase v2 API call to get the current session.
         const { data: { session } } = await supabase.auth.getSession();
         await setUserProfile(session);
      }

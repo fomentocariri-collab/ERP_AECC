@@ -6,21 +6,17 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ title }) => {
-  // State to track dark mode
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined' && window.localStorage) {
-      // 1. Check for saved preference in localStorage
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme) {
         return savedTheme === 'dark';
       }
-      // 2. Fallback to system preference
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
     return false;
   });
 
-  // Effect to apply the theme class to the <html> element
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');

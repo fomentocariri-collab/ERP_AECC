@@ -11,13 +11,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
             },
             colors: {
-              'primary': { // Dark Red (Vinho) from Logo
+              'primary': { // Vermelho Vinho
                 '50': '#fdf4f4',
                 '100': '#fbe9e9',
                 '200': '#f6d5d5',
@@ -25,12 +26,12 @@
                 '400': '#e38f8f',
                 '500': '#d36767',
                 '600': '#b55555',
-                '700': '#a43a3a', // Base color from logo
+                '700': '#a43a3a',
                 '800': '#8c2d2d',
                 '900': '#762929',
                 '950': '#401313',
               },
-              'secondary': { // Dark Green from Logo
+              'secondary': { // Verde Escuro
                 '50': '#f0f6f4',
                 '100': '#ddebe6',
                 '200': '#bbd7cd',
@@ -38,7 +39,7 @@
                 '400': '#5f9e86',
                 '500': '#43846c',
                 '600': '#3a7963',
-                '700': '#2d5e4d', // Base color from logo
+                '700': '#2d5e4d',
                 '800': '#244b3e',
                 '900': '#1e3e33',
                 '950': '#11241d',
@@ -62,6 +63,6 @@
 </head>
   <body class="bg-gray-100 dark:bg-gray-900 font-sans">
     <div id="root"></div>
-    <script type="module" src="/index.tsx?v=1.1"></script>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
