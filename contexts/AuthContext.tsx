@@ -38,7 +38,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
     } catch (error: any) {
         console.error("Error fetching user profile:", error.message);
-        return null;
+        // Retornar o erro para que a função de login possa tratá-lo
+        throw error;
     }
   }, []);
   
@@ -67,17 +68,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(true);
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        const userProfile = await fetchUserProfile(session?.user ?? null);
-        
-        // Prevents render loop by comparing old and new state
-        setCurrentUser(prevUser => {
-            if (JSON.stringify(prevUser) === JSON.stringify(userProfile)) {
-                return prevUser;
-            }
-            return userProfile;
-        });
-
-        setLoading(false);
+        try {
+            const userProfile = await fetchUserProfile(session?.user ?? null);
+            
+            // Prevents render loop by comparing old and new state
+            setCurrentUser(prevUser => {
+                if (JSON.stringify(prevUser) === JSON.stringify(userProfile)) {
+                    return prevUser;
+                }
+                return userProfile;
+            });
+        } catch(e) {
+            // Se a busca do perfil falhar (ex: RLS), desloga o usuário para evitar um estado inconsistente.
+            console.error("Auth state change error, signing out.", e);
+            await supabase.auth.signOut();
+            setCurrentUser(null);
+        } finally {
+            setLoading(false);
+        }
       }
     );
 
@@ -97,10 +105,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (error) throw new Error("Usuário ou senha inválidos.");
     if (!data.user) throw new Error("Login falhou, usuário não encontrado.");
 
-    const userProfile = await fetchUserProfile(data.user);
-    if (!userProfile) {
-      await supabase.auth.signOut();
-      throw new Error("Login OK, mas perfil não encontrado. Verifique a RLS (Row Level Security) da tabela 'profiles' no Supabase. É preciso permitir que usuários leiam o próprio perfil.");
+    try {
+        const userProfile = await fetchUserProfile(data.user);
+        if (!userProfile) {
+          throw new Error("Perfil de usuário não encontrado.");
+        }
+    } catch (error: any) {
+        await supabase.auth.signOut();
+        if (error.message.includes('infinite recursion')) {
+             throw new Error("Perfil não encontrado: detectada 'recursão infinita' na sua política de RLS para a tabela 'profiles'. Por favor, corrija-a no painel do Supabase.");
+        }
+        throw new Error(`Perfil de usuário não encontrado. Verifique as permissões (RLS) da tabela 'profiles' no Supabase.`);
     }
   }, [fetchUserProfile]);
 
