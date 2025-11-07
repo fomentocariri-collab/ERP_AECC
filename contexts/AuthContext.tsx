@@ -38,7 +38,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
     } catch (error: any) {
         console.error("Error fetching user profile:", error.message);
-        // Retornar o erro para que a função de login possa tratá-lo
         throw error;
     }
   }, []);
@@ -70,8 +69,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       async (_event, session) => {
         try {
             const userProfile = await fetchUserProfile(session?.user ?? null);
-            
-            // Prevents render loop by comparing old and new state
             setCurrentUser(prevUser => {
                 if (JSON.stringify(prevUser) === JSON.stringify(userProfile)) {
                     return prevUser;
@@ -79,7 +76,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 return userProfile;
             });
         } catch(e) {
-            // Se a busca do perfil falhar (ex: RLS), desloga o usuário para evitar um estado inconsistente.
             console.error("Auth state change error, signing out.", e);
             await supabase.auth.signOut();
             setCurrentUser(null);
@@ -88,7 +84,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
     );
-
     return () => {
       subscription?.unsubscribe();
     };
@@ -108,14 +103,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
         const userProfile = await fetchUserProfile(data.user);
         if (!userProfile) {
-          throw new Error("Perfil de usuário não encontrado.");
+          throw new Error("Login OK, mas perfil não encontrado.");
         }
     } catch (error: any) {
         await supabase.auth.signOut();
-        if (error.message.includes('infinite recursion')) {
-             throw new Error("Perfil não encontrado: detectada 'recursão infinita' na sua política de RLS para a tabela 'profiles'. Por favor, corrija-a no painel do Supabase.");
+        if (error.message && error.message.includes('infinite recursion')) {
+             throw new Error("RLS_RECURSION");
         }
-        throw new Error(`Perfil de usuário não encontrado. Verifique as permissões (RLS) da tabela 'profiles' no Supabase.`);
+        throw new Error(`Login OK, mas perfil não encontrado. Verifique a RLS (Row Level Security) da tabela 'profiles' no Supabase. É preciso permitir que usuários leiam o próprio perfil.`);
     }
   }, [fetchUserProfile]);
 
