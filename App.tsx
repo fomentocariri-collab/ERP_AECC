@@ -157,7 +157,8 @@ const App: React.FC = () => {
   const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
     await handleCrudOperation(
       'adicionar membro',
-      () => supabase.from('members').insert([camelToSnake(newMemberData)]),
+      // FIX: Wrap Supabase call in an async function to return a Promise and match 'handleCrudOperation' signature.
+      async () => supabase.from('members').insert([camelToSnake(newMemberData)]),
       true
     );
   };
@@ -165,31 +166,36 @@ const App: React.FC = () => {
   const handleUpdateMember = async (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => {
     await handleCrudOperation(
       'atualizar membro',
-      () => supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId),
+      // FIX: Wrap Supabase call in an async function to return a Promise and match 'handleCrudOperation' signature.
+      async () => supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId),
       true
     );
   };
   
   const handleDeleteMember = async (memberId: string) => {
-    await handleCrudOperation('excluir membro', () => supabase.from('members').delete().eq('id', memberId));
+    // FIX: Wrap Supabase call in an async function to return a Promise and match 'handleCrudOperation' signature.
+    await handleCrudOperation('excluir membro', async () => supabase.from('members').delete().eq('id', memberId));
   };
 
   const handleAddTransaction = async (newTransactionData: Omit<Transaction, 'id'>) => {
     await handleCrudOperation(
       'adicionar transação',
-      () => supabase.from('transactions').insert([camelToSnake(newTransactionData)]),
+      // FIX: Wrap Supabase call in an async function to return a Promise and match 'handleCrudOperation' signature.
+      async () => supabase.from('transactions').insert([camelToSnake(newTransactionData)]),
       true
     );
   };
 
   const handleDeleteTransaction = async (transactionId: string) => {
-    await handleCrudOperation('excluir transação', () => supabase.from('transactions').delete().eq('id', transactionId));
+    // FIX: Wrap Supabase call in an async function to return a Promise and match 'handleCrudOperation' signature.
+    await handleCrudOperation('excluir transação', async () => supabase.from('transactions').delete().eq('id', transactionId));
   };
   
   const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
     await handleCrudOperation(
       'adicionar evento',
-      () => supabase.from('events').insert([camelToSnake(newEventData)]),
+      // FIX: Wrap Supabase call in an async function to return a Promise and match 'handleCrudOperation' signature.
+      async () => supabase.from('events').insert([camelToSnake(newEventData)]),
       true
     );
   };
@@ -197,13 +203,15 @@ const App: React.FC = () => {
   const handleUpdateEvent = async (eventId: string, updatedData: Omit<Event, 'id'>) => {
     await handleCrudOperation(
       'atualizar evento',
-      () => supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId),
+      // FIX: Wrap Supabase call in an async function to return a Promise and match 'handleCrudOperation' signature.
+      async () => supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId),
       true
     );
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-    await handleCrudOperation('excluir evento', () => supabase.from('events').delete().eq('id', eventId));
+    // FIX: Wrap Supabase call in an async function to return a Promise and match 'handleCrudOperation' signature.
+    await handleCrudOperation('excluir evento', async () => supabase.from('events').delete().eq('id', eventId));
   };
 
   const handleAddDocument = async (docData: Omit<Document, 'id' | 'url'>, file: File) => {
@@ -217,7 +225,8 @@ const App: React.FC = () => {
 
       await handleCrudOperation(
         'adicionar documento',
-        () => supabase.from('documents').insert([{ ...camelToSnake(docData), url: urlData.publicUrl }]),
+        // FIX: Wrap Supabase call in an async function to return a Promise and match 'handleCrudOperation' signature.
+        async () => supabase.from('documents').insert([{ ...camelToSnake(docData), url: urlData.publicUrl }]),
         true
       );
     } catch (error: any) {
@@ -235,13 +244,15 @@ const App: React.FC = () => {
       }
     } catch(e) { console.error("Could not parse URL to delete from storage:", doc.url, e); }
     
-    await handleCrudOperation('excluir documento', () => supabase.from('documents').delete().eq('id', doc.id));
+    // FIX: Wrap Supabase call in an async function to return a Promise and match 'handleCrudOperation' signature.
+    await handleCrudOperation('excluir documento', async () => supabase.from('documents').delete().eq('id', doc.id));
   };
   
   const handleAddCommunication = async (newCommunicationData: Omit<Communication, 'id'>) => {
     await handleCrudOperation(
       'enviar comunicação',
-      () => supabase.from('communications').insert([camelToSnake(newCommunicationData)]),
+      // FIX: Wrap Supabase call in an async function to return a Promise and match 'handleCrudOperation' signature.
+      async () => supabase.from('communications').insert([camelToSnake(newCommunicationData)]),
       true
     );
   };

@@ -1,8 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../supabaseClient';
-// FIX: The 'User' type is not exported in older versions of `@supabase/supabase-js`.
-// We import 'Session' instead and derive the User type from it.
 import type { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -18,15 +16,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// FIX: Define SupabaseUser type from Session to handle cases where User type is not exported.
-type SupabaseUser = Session['user'];
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
 
-  const fetchUserProfile = useCallback(async (supabaseUser: SupabaseUser | null): Promise<User | null> => {
+  const fetchUserProfile = useCallback(async (supabaseUser: Session['user'] | null): Promise<User | null> => {
     if (!supabaseUser) return null;
     try {
       const { data: profile, error } = await supabase
@@ -70,13 +65,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     setLoading(true);
-    // FIX: The `onAuthStateChange` method should exist, the error might be a side-effect of other type issues.
-    // This syntax is correct for Supabase JS v2.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         const userProfile = await fetchUserProfile(session?.user ?? null);
         
-        // Previne loop de renderização comparando o estado antigo e o novo
+        // Prevents render loop by comparing old and new state
         setCurrentUser(prevUser => {
             if (JSON.stringify(prevUser) === JSON.stringify(userProfile)) {
                 return prevUser;
@@ -100,22 +93,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [currentUser, fetchUsers]);
 
   const login = useCallback(async (email: string, pass: string) => {
-    // FIX: `signInWithPassword` was introduced in later versions. Using `signIn` for broader compatibility.
-    // The response structure is also adjusted from `{ data, error }` to `{ data: { user }, error }`.
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw new Error("Usuário ou senha inválidos.");
     if (!data.user) throw new Error("Login falhou, usuário não encontrado.");
 
     const userProfile = await fetchUserProfile(data.user);
     if (!userProfile) {
-        // FIX: `signOut` should exist. The error is likely due to TS type resolution issues.
-        await supabase.auth.signOut();
-        throw new Error("Perfil de usuário não encontrado. Contate o administrador.");
+      await supabase.auth.signOut();
+      throw new Error("Login OK, mas perfil não encontrado. Verifique a RLS (Row Level Security) da tabela 'profiles' no Supabase. É preciso permitir que usuários leiam o próprio perfil.");
     }
   }, [fetchUserProfile]);
 
   const logout = useCallback(async () => {
-    // FIX: `signOut` should exist.
     await supabase.auth.signOut();
     localStorage.clear();
     sessionStorage.clear();
@@ -124,11 +113,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const addUser = useCallback(async (userData: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => {
-    // FIX: `getSession` in older versions was synchronous and returned the session directly.
     const { data: { session: adminSession } } = await supabase.auth.getSession();
     if (!adminSession) throw new Error("Sessão de administrador necessária.");
     
-    // FIX: `signUp` should exist.
     const { error: signUpError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -141,7 +128,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     });
 
-    // FIX: `setSession` should exist for session restoration.
     const { error: sessionError } = await supabase.auth.setSession({
         access_token: adminSession.access_token,
         refresh_token: adminSession.refresh_token,
@@ -170,7 +156,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      await fetchUsers();
      
      if (currentUser && currentUser.id === userId) {
-        // FIX: `getSession` in older versions was synchronous. Using modern async version.
         const { data: { session } } = await supabase.auth.getSession();
         const updatedProfile = await fetchUserProfile(session?.user ?? null);
         setCurrentUser(updatedProfile);
