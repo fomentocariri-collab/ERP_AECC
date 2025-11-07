@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -85,10 +84,6 @@ const App: React.FC = () => {
   };
   
   const generateErrorMessage = (action: string, error: any) => {
-    // Check for RLS message
-    if (error.message.includes('security policies')) {
-      return `Erro de permissão ao ${action}. Verifique as políticas (RLS) no Supabase.`;
-    }
     return `Erro ao ${action}: ${error.message}.`;
   };
 
@@ -131,7 +126,6 @@ const App: React.FC = () => {
     if (currentUser) {
       fetchData();
     } else {
-      // Clear data on logout
       setMembers([]);
       setTransactions([]);
       setEvents([]);
@@ -276,7 +270,6 @@ const App: React.FC = () => {
       if (error) throw error;
       showToast('Documento excluído com sucesso!');
       await fetchData();
-    // FIX: Added curly braces to the catch block to fix a syntax error that was breaking the component's scope.
     } catch (error: any) {
       showToast(generateErrorMessage('excluir documento', error), 'error');
     }

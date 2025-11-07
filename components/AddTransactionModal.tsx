@@ -37,11 +37,14 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
   useEffect(() => {
     if(isOpen) {
         resetForm();
-        if (!showMemberSelector) {
-          setMemberId('');
-        }
     }
-  }, [isOpen, resetForm, showMemberSelector]);
+  }, [isOpen, resetForm]);
+  
+  useEffect(() => {
+    if (!showMemberSelector) {
+        setMemberId('');
+    }
+  }, [description, showMemberSelector]);
 
   if (!isOpen) {
     return null;
