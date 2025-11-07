@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Send, Clock, MessageSquareX } from 'lucide-react';
 import { Communication, Member, UserRole } from '../types';
 
-const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500";
+const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500 disabled:opacity-50";
 
 interface CommunicationsProps {
     members: Member[];

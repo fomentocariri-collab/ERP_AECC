@@ -51,7 +51,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({ isOpen, on
                 <h3 className="text-lg font-semibold mb-4 text-primary-800 dark:text-primary-300">Dados Cadastrais</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4">
                     <DetailRow icon={<Info size={20} />} label="CPF" value={member.cpf} />
-                    <DetailRow icon={<MapPin size={20} />} label="Endereço" value={`${member.address}, ${member.city}-${member.state}`} />
+                    <DetailRow icon={<MapPin size={20} />} label="Endereço" value={member.address ? `${member.address}, ${member.city}-${member.state}` : null} />
                     <DetailRow icon={<Phone size={20} />} label="Telefone" value={member.phone} />
                     <DetailRow icon={<Calendar size={20} />} label="Data de Nascimento" value={member.birthDate} />
                     <DetailRow icon={<CalendarCheck2 size={20} />} label="Data de Admissão" value={member.admissionDate} />

@@ -76,6 +76,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
         });
         onClose();
     } catch(e) {
+        // Error is handled by the parent component's toast
         console.error("Failed to add transaction", e);
     } finally {
         setIsSaving(false);

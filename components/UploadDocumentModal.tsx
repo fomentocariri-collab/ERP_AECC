@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Document, DocumentType } from '../types';
 import { X, UploadCloud } from 'lucide-react';
 
@@ -24,6 +24,13 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
     setError('');
     setIsSaving(false);
   }, []);
+  
+  useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen, resetForm]);
+
 
   if (!isOpen) {
     return null;
@@ -32,6 +39,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
+      setError('');
     }
   };
 
@@ -55,6 +63,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
         await onAddDocument(newDocumentData, selectedFile);
         onClose();
     } catch (e) {
+        // Error is handled by the parent component's toast
         console.error("Failed to upload document", e)
     } finally {
         setIsSaving(false);
@@ -117,7 +126,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
             </button>
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={isSaving || !selectedFile}
               className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait"
             >
               {isSaving ? 'Salvando...' : 'Salvar Documento'}

@@ -84,7 +84,7 @@ const App: React.FC = () => {
   };
   
   const generateErrorMessage = (action: string, error: any) => {
-    return `Erro ao ${action}: ${error.message}.`;
+    return `Erro ao ${action}: ${error.message}. Verifique as permissões (RLS) no Supabase.`;
   };
 
   const fetchData = useCallback(async () => {
@@ -135,99 +135,75 @@ const App: React.FC = () => {
     }
   }, [currentUser, fetchData]);
 
-  // CRUD HANDLERS (Direct Implementation for Robustness)
-
-  const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
+  // Generic CRUD Handler
+  const handleCrudOperation = async (
+    action: string,
+    operation: () => Promise<{ error: any }>,
+    throwOnError = false
+  ) => {
     try {
-      const { error } = await supabase.from('members').insert([camelToSnake(newMemberData)]).select().single();
+      const { error } = await operation();
       if (error) throw error;
-      showToast('Membro adicionado com sucesso!');
+      showToast(`${action.charAt(0).toUpperCase() + action.slice(1)} com sucesso!`);
       await fetchData();
     } catch (error: any) {
-      showToast(generateErrorMessage('adicionar membro', error), 'error');
-      throw error; // Re-throw to be caught in modal
+      showToast(generateErrorMessage(action.toLowerCase(), error), 'error');
+      if (throwOnError) {
+        throw error;
+      }
     }
+  };
+
+  const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
+    await handleCrudOperation(
+      'adicionar membro',
+      () => supabase.from('members').insert([camelToSnake(newMemberData)]),
+      true
+    );
   };
 
   const handleUpdateMember = async (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => {
-    try {
-      const { error } = await supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId).select().single();
-      if (error) throw error;
-      showToast('Membro atualizado com sucesso!');
-      await fetchData();
-    } catch (error: any) {
-      showToast(generateErrorMessage('atualizar membro', error), 'error');
-      throw error;
-    }
+    await handleCrudOperation(
+      'atualizar membro',
+      () => supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId),
+      true
+    );
   };
   
   const handleDeleteMember = async (memberId: string) => {
-    try {
-      const { error } = await supabase.from('members').delete().eq('id', memberId);
-      if (error) throw error;
-      showToast('Membro excluído com sucesso!');
-      await fetchData();
-    } catch (error: any) {
-      showToast(generateErrorMessage('excluir membro', error), 'error');
-    }
+    await handleCrudOperation('excluir membro', () => supabase.from('members').delete().eq('id', memberId));
   };
 
   const handleAddTransaction = async (newTransactionData: Omit<Transaction, 'id'>) => {
-    try {
-      const { error } = await supabase.from('transactions').insert([camelToSnake(newTransactionData)]).select().single();
-      if (error) throw error;
-      showToast('Transação adicionada com sucesso!');
-      await fetchData();
-    } catch (error: any) {
-      showToast(generateErrorMessage('adicionar transação', error), 'error');
-      throw error;
-    }
+    await handleCrudOperation(
+      'adicionar transação',
+      () => supabase.from('transactions').insert([camelToSnake(newTransactionData)]),
+      true
+    );
   };
 
   const handleDeleteTransaction = async (transactionId: string) => {
-     try {
-      const { error } = await supabase.from('transactions').delete().eq('id', transactionId);
-      if (error) throw error;
-      showToast('Transação excluída com sucesso!');
-      await fetchData();
-    } catch (error: any) {
-      showToast(generateErrorMessage('excluir transação', error), 'error');
-    }
+    await handleCrudOperation('excluir transação', () => supabase.from('transactions').delete().eq('id', transactionId));
   };
   
   const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
-    try {
-      const { error } = await supabase.from('events').insert([camelToSnake(newEventData)]).select().single();
-      if (error) throw error;
-      showToast('Evento adicionado com sucesso!');
-      await fetchData();
-    } catch (error: any) {
-      showToast(generateErrorMessage('adicionar evento', error), 'error');
-      throw error;
-    }
+    await handleCrudOperation(
+      'adicionar evento',
+      () => supabase.from('events').insert([camelToSnake(newEventData)]),
+      true
+    );
   };
 
   const handleUpdateEvent = async (eventId: string, updatedData: Omit<Event, 'id'>) => {
-     try {
-      const { error } = await supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId).select().single();
-      if (error) throw error;
-      showToast('Evento atualizado com sucesso!');
-      await fetchData();
-    } catch (error: any) {
-      showToast(generateErrorMessage('atualizar evento', error), 'error');
-      throw error;
-    }
+    await handleCrudOperation(
+      'atualizar evento',
+      () => supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId),
+      true
+    );
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-     try {
-      const { error } = await supabase.from('events').delete().eq('id', eventId);
-      if (error) throw error;
-      showToast('Evento excluído com sucesso!');
-      await fetchData();
-    } catch (error: any) {
-      showToast(generateErrorMessage('excluir evento', error), 'error');
-    }
+    await handleCrudOperation('excluir evento', () => supabase.from('events').delete().eq('id', eventId));
   };
 
   const handleAddDocument = async (docData: Omit<Document, 'id' | 'url'>, file: File) => {
@@ -239,15 +215,11 @@ const App: React.FC = () => {
       const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
       if (!urlData.publicUrl) throw new Error("Não foi possível obter a URL pública do arquivo.");
 
-      const { error: insertError } = await supabase.from('documents').insert([{ ...camelToSnake(docData), url: urlData.publicUrl }]).select().single();
-      if (insertError) {
-        // Clean up uploaded file if DB insert fails
-        await supabase.storage.from('documents').remove([filePath]);
-        throw insertError;
-      }
-      
-      showToast('Documento adicionado com sucesso!');
-      await fetchData();
+      await handleCrudOperation(
+        'adicionar documento',
+        () => supabase.from('documents').insert([{ ...camelToSnake(docData), url: urlData.publicUrl }]),
+        true
+      );
     } catch (error: any) {
       showToast(generateErrorMessage('adicionar documento', error), 'error');
       throw error;
@@ -256,7 +228,6 @@ const App: React.FC = () => {
 
   const handleDeleteDocument = async (doc: Document) => {
     try {
-      // First, try to delete from storage
       const url = new URL(doc.url);
       const filePath = url.pathname.split('/documents/')[1];
       if (filePath) {
@@ -264,27 +235,15 @@ const App: React.FC = () => {
       }
     } catch(e) { console.error("Could not parse URL to delete from storage:", doc.url, e); }
     
-    // Then, delete from database regardless of storage deletion success
-    try {
-      const { error } = await supabase.from('documents').delete().eq('id', doc.id);
-      if (error) throw error;
-      showToast('Documento excluído com sucesso!');
-      await fetchData();
-    } catch (error: any) {
-      showToast(generateErrorMessage('excluir documento', error), 'error');
-    }
+    await handleCrudOperation('excluir documento', () => supabase.from('documents').delete().eq('id', doc.id));
   };
   
   const handleAddCommunication = async (newCommunicationData: Omit<Communication, 'id'>) => {
-    try {
-      const { error } = await supabase.from('communications').insert([camelToSnake(newCommunicationData)]).select().single();
-      if (error) throw error;
-      showToast('Comunicação enviada com sucesso!');
-      await fetchData();
-    } catch (error: any) {
-      showToast(generateErrorMessage('enviar comunicação', error), 'error');
-      throw error;
-    }
+    await handleCrudOperation(
+      'enviar comunicação',
+      () => supabase.from('communications').insert([camelToSnake(newCommunicationData)]),
+      true
+    );
   };
 
   const renderPage = () => {
