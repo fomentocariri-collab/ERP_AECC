@@ -103,7 +103,6 @@ const App: React.FC = () => {
           supabase.from('communications').select('*').order('sent_at', { ascending: false })
         ]);
   
-        // Check for errors in all promises
         const errors = [membersRes, transactionsRes, eventsRes, documentsRes, communicationsRes].map(res => res.error).filter(Boolean);
         if (errors.length > 0) {
           throw new Error(errors.map(e => e!.message).join(', '));
@@ -136,112 +135,147 @@ const App: React.FC = () => {
     }
   }, [currentUser, fetchData]);
 
-  const createCrudHandler = useCallback(
-    (
-      operationName: string,
-      operation: () => Promise<{ data: any | null; error: any }>
-    ) => async () => {
-      try {
-        const { error } = await operation();
-        if (error) {
-          throw error;
-        }
-        showToast(`${operationName} com sucesso!`);
-        await fetchData(); // Refresh all data to ensure consistency
-      } catch (error: any) {
-        showToast(generateErrorMessage(operationName.toLowerCase(), error), 'error');
-      }
-    },
-    [fetchData] 
-  );
+  // CRUD HANDLERS (Direct Implementation for Robustness)
 
   const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
-    await createCrudHandler('Adicionar membro', async () => 
-      supabase.from('members').insert([camelToSnake(newMemberData)]).select().single()
-    )();
+    try {
+      const { error } = await supabase.from('members').insert([camelToSnake(newMemberData)]).select().single();
+      if (error) throw error;
+      showToast('Membro adicionado com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      showToast(generateErrorMessage('adicionar membro', error), 'error');
+    }
   };
 
   const handleUpdateMember = async (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => {
-     await createCrudHandler('Atualizar membro', async () => 
-      supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId).select().single()
-    )();
+    try {
+      const { error } = await supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId).select().single();
+      if (error) throw error;
+      showToast('Membro atualizado com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      showToast(generateErrorMessage('atualizar membro', error), 'error');
+    }
   };
   
   const handleDeleteMember = async (memberId: string) => {
-    await createCrudHandler('Excluir membro', async () => 
-      supabase.from('members').delete().eq('id', memberId)
-    )();
+    try {
+      const { error } = await supabase.from('members').delete().eq('id', memberId);
+      if (error) throw error;
+      showToast('Membro excluído com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      showToast(generateErrorMessage('excluir membro', error), 'error');
+    }
   };
 
   const handleAddTransaction = async (newTransactionData: Omit<Transaction, 'id'>) => {
-    await createCrudHandler('Adicionar transação', async () => 
-      supabase.from('transactions').insert([camelToSnake(newTransactionData)]).select().single()
-    )();
+    try {
+      const { error } = await supabase.from('transactions').insert([camelToSnake(newTransactionData)]).select().single();
+      if (error) throw error;
+      showToast('Transação adicionada com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      showToast(generateErrorMessage('adicionar transação', error), 'error');
+    }
   };
 
   const handleDeleteTransaction = async (transactionId: string) => {
-    await createCrudHandler('Excluir transação', async () => 
-      supabase.from('transactions').delete().eq('id', transactionId)
-    )();
+     try {
+      const { error } = await supabase.from('transactions').delete().eq('id', transactionId);
+      if (error) throw error;
+      showToast('Transação excluída com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      showToast(generateErrorMessage('excluir transação', error), 'error');
+    }
   };
   
   const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
-    await createCrudHandler('Adicionar evento', async () => 
-      supabase.from('events').insert([camelToSnake(newEventData)]).select().single()
-    )();
+    try {
+      const { error } = await supabase.from('events').insert([camelToSnake(newEventData)]).select().single();
+      if (error) throw error;
+      showToast('Evento adicionado com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      showToast(generateErrorMessage('adicionar evento', error), 'error');
+    }
   };
 
   const handleUpdateEvent = async (eventId: string, updatedData: Omit<Event, 'id'>) => {
-    await createCrudHandler('Atualizar evento', async () => 
-      supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId).select().single()
-    )();
+     try {
+      const { error } = await supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId).select().single();
+      if (error) throw error;
+      showToast('Evento atualizado com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      showToast(generateErrorMessage('atualizar evento', error), 'error');
+    }
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-     await createCrudHandler('Excluir evento', async () => 
-      supabase.from('events').delete().eq('id', eventId)
-    )();
+     try {
+      const { error } = await supabase.from('events').delete().eq('id', eventId);
+      if (error) throw error;
+      showToast('Evento excluído com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      showToast(generateErrorMessage('excluir evento', error), 'error');
+    }
   };
 
   const handleAddDocument = async (docData: Omit<Document, 'id' | 'url'>, file: File) => {
-    const filePath = `${currentUser!.id}/${new Date().getTime()}-${file.name}`;
-    const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
+    try {
+      const filePath = `${currentUser!.id}/${new Date().getTime()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
+      if (uploadError) throw uploadError;
 
-    if (uploadError) {
-      showToast(generateErrorMessage('carregar arquivo', uploadError), 'error');
-      return;
+      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
+      if (!urlData.publicUrl) throw new Error("Não foi possível obter a URL pública do arquivo.");
+
+      const { error: insertError } = await supabase.from('documents').insert([{ ...camelToSnake(docData), url: urlData.publicUrl }]).select().single();
+      if (insertError) {
+        // Attempt to clean up storage if DB insert fails
+        await supabase.storage.from('documents').remove([filePath]);
+        throw insertError;
+      }
+      
+      showToast('Documento adicionado com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      showToast(generateErrorMessage('adicionar documento', error), 'error');
     }
-
-    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
-    if (!urlData.publicUrl) {
-      showToast("Não foi possível obter a URL pública do arquivo.", 'error');
-      await supabase.storage.from('documents').remove([filePath]);
-      return;
-    }
-
-    await createCrudHandler('Adicionar documento', async () => 
-      supabase.from('documents').insert([{ ...camelToSnake(docData), url: urlData.publicUrl }]).select().single()
-    )();
   };
 
   const handleDeleteDocument = async (doc: Document) => {
     try {
-        const url = new URL(doc.url);
-        const filePath = url.pathname.split('/documents/')[1];
-        if (filePath) {
-            await supabase.storage.from('documents').remove([decodeURIComponent(filePath)]);
-        }
+      const url = new URL(doc.url);
+      const filePath = url.pathname.split('/documents/')[1];
+      if (filePath) {
+          await supabase.storage.from('documents').remove([decodeURIComponent(filePath)]);
+      }
     } catch(e) { console.error("Could not parse URL to delete from storage:", doc.url, e); }
     
-    await createCrudHandler('Excluir documento', async () => 
-      supabase.from('documents').delete().eq('id', doc.id)
-    )();
+    try {
+      const { error } = await supabase.from('documents').delete().eq('id', doc.id);
+      if (error) throw error;
+      showToast('Documento excluído com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      showToast(generateErrorMessage('excluir documento', error), 'error');
+    }
   };
   
   const handleAddCommunication = async (newCommunicationData: Omit<Communication, 'id'>) => {
-    await createCrudHandler('Enviar comunicação', async () => 
-      supabase.from('communications').insert([camelToSnake(newCommunicationData)]).select().single()
-    )();
+    try {
+      const { error } = await supabase.from('communications').insert([camelToSnake(newCommunicationData)]).select().single();
+      if (error) throw error;
+      showToast('Comunicação enviada com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      showToast(generateErrorMessage('enviar comunicação', error), 'error');
+    }
   };
 
   const renderPage = () => {

@@ -59,18 +59,22 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
 
     const selectedMember = members.find(m => m.id === memberId);
 
-    await onAddTransaction({
-      description,
-      amount: parseFloat(amount),
-      type,
-      date,
-      memberId: showMemberSelector ? memberId : undefined,
-      memberName: showMemberSelector ? selectedMember?.name : undefined,
-    });
-    
-    setIsSaving(false);
-    resetForm();
-    onClose();
+    try {
+        await onAddTransaction({
+          description,
+          amount: parseFloat(amount),
+          type,
+          date,
+          memberId: showMemberSelector ? memberId : undefined,
+          memberName: showMemberSelector ? selectedMember?.name : undefined,
+        });
+        resetForm();
+        onClose();
+    } catch(e) {
+        console.error(e)
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   return (

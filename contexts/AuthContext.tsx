@@ -30,8 +30,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('id', supabaseUser.id)
         .single();
       if (error || !profile) {
-        // This is not necessarily an error to throw, but a state where the profile doesn't exist yet.
-        // The calling function will handle this.
         console.warn("User profile not found for uid:", supabaseUser.id);
         return null;
       }
@@ -99,11 +97,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (error) throw new Error("Usuário ou senha inválidos.");
     if (!data.user) throw new Error("Login falhou, usuário não encontrado.");
 
-    // After successful login, explicitly fetch the profile.
-    // onAuthStateChange can be slow, this provides faster feedback.
     const userProfile = await fetchUserProfile(data.user);
     if (!userProfile) {
-        // This is the critical part: if profile doesn't exist, sign out to prevent broken state.
         await supabase.auth.signOut();
         throw new Error("Perfil de usuário não encontrado. Contate o administrador.");
     }
@@ -113,18 +108,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Error logging out:", error.message);
-    setCurrentUser(null); // Immediately clear user for faster UI response
+    setCurrentUser(null);
   }, []);
 
   const addUser = useCallback(async (userData: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => {
     const { data: { session: adminSession } } = await supabase.auth.getSession();
     if (!adminSession) throw new Error("Sessão de administrador necessária para esta operação.");
     
-    // We don't need to sign out. We can use the admin client to create a user,
-    // but that's a server-side operation. Client-side, we sign up then restore session.
-    // This flow is tricky. A better way is an Edge Function. But let's fix the client flow.
-    
-    // This is a Supabase client-side limitation. Sign-up logs the new user in.
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -137,12 +127,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     });
 
-    // CRITICAL: Restore admin session immediately after the signup call.
     const { error: sessionError } = await supabase.auth.setSession(adminSession);
     
     if (sessionError) {
         console.error("CRITICAL: Failed to restore admin session.", sessionError);
-        await logout(); // Force logout for security
+        await logout();
         throw new Error("Sua sessão expirou. Por favor, faça login novamente.");
     }
 
@@ -152,7 +141,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     if (!signUpData.user) throw new Error("Não foi possível criar o usuário.");
     
-    // Refresh user list
     await fetchUsers();
   }, [fetchUsers, logout]);
   
@@ -165,7 +153,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      
      await fetchUsers();
      
-     // If updating the current user, refresh their profile in the context
      if (currentUser && currentUser.id === userId) {
         const { data: { user } } = await supabase.auth.getUser();
         const updatedProfile = await fetchUserProfile(user);
@@ -174,8 +161,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [currentUser, fetchUserProfile, fetchUsers]);
   
   const deleteUser = useCallback(async (userId: string) => {
-    // This should be done via a Supabase Edge function for security.
-    // Client-side user deletion is not recommended.
     alert("Funcionalidade em desenvolvimento. A exclusão de usuários deve ser feita no painel do Supabase.");
     console.warn(`Request to delete user ${userId} blocked. Implement a secure server-side function.`);
   }, []);

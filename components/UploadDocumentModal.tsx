@@ -51,10 +51,15 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
         size: selectedFile.size,
     };
 
-    await onAddDocument(newDocumentData, selectedFile);
-    setIsSaving(false);
-    resetForm();
-    onClose();
+    try {
+        await onAddDocument(newDocumentData, selectedFile);
+        resetForm();
+        onClose();
+    } catch (e) {
+        console.error(e)
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   return (

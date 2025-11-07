@@ -61,10 +61,15 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onS
 
     const userData = { name, email, role, ...(password && { password }) };
     
-    await onSave(userData);
-    setIsSaving(false);
-    resetForm();
-    onClose();
+    try {
+        await onSave(userData);
+        resetForm();
+        onClose();
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   return (

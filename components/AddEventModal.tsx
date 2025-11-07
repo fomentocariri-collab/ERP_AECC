@@ -63,11 +63,17 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, o
     }
     setError('');
     setIsSaving(true);
-    await onSave({ 
-        title, date, time, location, description, type
-    });
-    setIsSaving(false);
-    onClose();
+    
+    try {
+        await onSave({ 
+            title, date, time, location, description, type
+        });
+        onClose();
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   return (

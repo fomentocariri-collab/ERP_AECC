@@ -107,9 +107,15 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
         avatarUrl: avatarUrl || `https://i.pravatar.cc/150?u=${email}`
     };
 
-    await onSave(memberData);
-    setIsSaving(false);
-    onClose();
+    try {
+        await onSave(memberData);
+        onClose();
+    } catch (e) {
+        // Error is handled by the parent component's toast notification
+        console.error(e);
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   return (
