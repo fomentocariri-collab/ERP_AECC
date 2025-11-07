@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Event, EventType } from '../types';
 import { X } from 'lucide-react';
 
@@ -25,7 +25,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, o
 
   const isEditing = !!existingEvent;
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setTitle('');
     setDate(new Date().toISOString().split('T')[0]);
     setTime('09:00');
@@ -34,11 +34,11 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, o
     setDescription('');
     setError('');
     setIsSaving(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
-      if (isEditing) {
+      if (isEditing && existingEvent) {
         setTitle(existingEvent.title);
         setDate(existingEvent.date);
         setTime(existingEvent.time);
@@ -49,7 +49,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, o
         resetForm();
       }
     }
-  }, [isOpen, existingEvent, isEditing]);
+  }, [isOpen, existingEvent, isEditing, resetForm]);
 
   if (!isOpen) {
     return null;

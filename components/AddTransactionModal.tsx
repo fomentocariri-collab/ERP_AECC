@@ -24,12 +24,6 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
 
   const showMemberSelector = MEMBER_RELATED_DESCRIPTIONS.includes(description);
   
-  useEffect(() => {
-    if (!showMemberSelector) {
-      setMemberId('');
-    }
-  }, [description, showMemberSelector]);
-
   const resetForm = useCallback(() => {
     setDescription('Mensalidade');
     setAmount('');
@@ -43,8 +37,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
   useEffect(() => {
     if(isOpen) {
         resetForm();
+        if (!showMemberSelector) {
+          setMemberId('');
+        }
     }
-  }, [isOpen, resetForm])
+  }, [isOpen, resetForm, showMemberSelector]);
 
   if (!isOpen) {
     return null;

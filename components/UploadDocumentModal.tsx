@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Document, DocumentType } from '../types';
 import { X, UploadCloud } from 'lucide-react';
 
@@ -18,16 +18,16 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  if (!isOpen) {
-    return null;
-  }
-
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setSelectedFile(null);
     setDocType('Report');
     setError('');
     setIsSaving(false);
-  };
+  }, []);
+
+  if (!isOpen) {
+    return null;
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

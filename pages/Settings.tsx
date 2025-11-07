@@ -38,9 +38,6 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
         setIsSavingProfile(true);
         try {
             await onUpdateUser(currentUser.id, { name, email });
-            showToast('Perfil atualizado com sucesso!');
-        } catch (error: any) {
-            // Toast is shown by App.tsx
         } finally {
             setIsSavingProfile(false);
         }
@@ -72,6 +69,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
             await onUpdateUser(editingUser.id, profileData);
         } else {
             if (!data.password) {
+                // This check is also in the modal, but good to have it here too.
                 showToast("A senha é obrigatória para criar um novo usuário.", 'error');
                 return;
             }

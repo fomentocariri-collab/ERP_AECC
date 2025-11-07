@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../supabaseClient';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
       if (error || !profile) {
         console.warn("User profile not found for uid:", supabaseUser.id, error);
-        return null;
+        return null; // Return null if profile doesn't exist
       }
       return {
         id: profile.id, email: profile.email, name: profile.name,
@@ -44,6 +44,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
   
   const fetchUsers = useCallback(async () => {
+    // Check for Super Admin role before fetching
     if (!currentUser || currentUser.role !== 'Super Admin') {
         setUsers([]);
         return;
@@ -60,11 +61,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       })));
     } catch (error: any) {
         console.error("Error fetching users (might be due to permissions):", error.message);
-        setUsers([]);
+        setUsers([]); // Clear users on error to prevent stale data
     }
   }, [currentUser]);
 
-  // Central listener for auth state changes
+  // Central listener for auth state changes - this is the source of truth
   useEffect(() => {
     setLoading(true);
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -80,7 +81,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [fetchUserProfile]);
 
-  // Fetch users list when current user changes
   useEffect(() => {
       fetchUsers();
   }, [currentUser, fetchUsers]);
@@ -92,16 +92,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const userProfile = await fetchUserProfile(data.user);
     if (!userProfile) {
+        // If profile doesn't exist, sign out immediately to prevent a broken state
         await supabase.auth.signOut();
         throw new Error("Perfil de usuário não encontrado. Contate o administrador.");
     }
-    // The onAuthStateChange listener will handle setting the user
+    // The onAuthStateChange listener will correctly set the user state application-wide.
   }, [fetchUserProfile]);
 
   const logout = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) console.error("Error logging out:", error.message);
-    setCurrentUser(null);
+    await supabase.auth.signOut();
+    localStorage.clear();
+    sessionStorage.clear();
+    // Setting state to null is good, but redirecting is more robust
+    setCurrentUser(null); 
+    window.location.href = "/"; // Force a full page reload to the login screen
   }, []);
 
   const addUser = useCallback(async (userData: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => {
@@ -123,7 +127,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     // 3. CRITICAL: Restore the admin session immediately.
-    const { error: sessionError } = await supabase.auth.setSession(adminSession);
+    const { error: sessionError } = await supabase.auth.setSession({
+        access_token: adminSession.access_token,
+        refresh_token: adminSession.refresh_token,
+    });
     
     if (sessionError) {
         console.error("CRITICAL: Failed to restore admin session.", sessionError);
@@ -133,6 +140,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     if (signUpError) {
+        // Even if signUp fails, we must ensure admin session is restored.
+        // The logic above already handles this. Now we can throw the original error.
         throw new Error(`Erro ao criar usuário: ${signUpError.message}`);
     }
     
@@ -143,6 +152,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [fetchUsers, logout]);
   
   const updateUser = useCallback(async (userId: string, data: Partial<User>) => {
+     // Prepare data for Supabase (snake_case, remove undefined)
      const snakeCaseData = { name: data.name, role: data.role, email: data.email };
      Object.keys(snakeCaseData).forEach(key => (snakeCaseData as any)[key] === undefined && delete (snakeCaseData as any)[key]);
 
@@ -151,9 +161,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      
      await fetchUsers();
      
+     // If the updated user is the current user, refresh their profile
      if (currentUser && currentUser.id === userId) {
-        // FIX: Cast to unknown first to resolve the type mismatch between the local User type and SupabaseUser type.
-        const updatedProfile = await fetchUserProfile(currentUser as unknown as SupabaseUser);
+        const { data: { session } } = await supabase.auth.getSession();
+        const updatedProfile = await fetchUserProfile(session?.user ?? null);
         setCurrentUser(updatedProfile);
      }
   }, [currentUser, fetchUserProfile, fetchUsers]);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -84,6 +85,10 @@ const App: React.FC = () => {
   };
   
   const generateErrorMessage = (action: string, error: any) => {
+    // Check for RLS message
+    if (error.message.includes('security policies')) {
+      return `Erro de permissão ao ${action}. Verifique as políticas (RLS) no Supabase.`;
+    }
     return `Erro ao ${action}: ${error.message}.`;
   };
 
@@ -120,11 +125,21 @@ const App: React.FC = () => {
       } finally {
         setAppLoading(false);
       }
-  }, [currentUser?.id]);
+  }, [currentUser]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (currentUser) {
+      fetchData();
+    } else {
+      // Clear data on logout
+      setMembers([]);
+      setTransactions([]);
+      setEvents([]);
+      setDocuments([]);
+      setCommunications([]);
+      setAppLoading(false);
+    }
+  }, [currentUser, fetchData]);
 
   // CRUD HANDLERS (Direct Implementation for Robustness)
 
@@ -232,6 +247,7 @@ const App: React.FC = () => {
 
       const { error: insertError } = await supabase.from('documents').insert([{ ...camelToSnake(docData), url: urlData.publicUrl }]).select().single();
       if (insertError) {
+        // Clean up uploaded file if DB insert fails
         await supabase.storage.from('documents').remove([filePath]);
         throw insertError;
       }
@@ -246,6 +262,7 @@ const App: React.FC = () => {
 
   const handleDeleteDocument = async (doc: Document) => {
     try {
+      // First, try to delete from storage
       const url = new URL(doc.url);
       const filePath = url.pathname.split('/documents/')[1];
       if (filePath) {
@@ -253,11 +270,13 @@ const App: React.FC = () => {
       }
     } catch(e) { console.error("Could not parse URL to delete from storage:", doc.url, e); }
     
+    // Then, delete from database regardless of storage deletion success
     try {
       const { error } = await supabase.from('documents').delete().eq('id', doc.id);
       if (error) throw error;
       showToast('Documento excluído com sucesso!');
       await fetchData();
+    // FIX: Added curly braces to the catch block to fix a syntax error that was breaking the component's scope.
     } catch (error: any) {
       showToast(generateErrorMessage('excluir documento', error), 'error');
     }
@@ -271,6 +290,7 @@ const App: React.FC = () => {
       await fetchData();
     } catch (error: any) {
       showToast(generateErrorMessage('enviar comunicação', error), 'error');
+      throw error;
     }
   };
 

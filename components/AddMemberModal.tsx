@@ -112,10 +112,9 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
       onClose(); // Close modal on success
     } catch (error) {
       // Error is handled by the parent component's toast notification
-      // We don't close the modal on error, so the user can see the form
       console.error("Failed to save member:", error);
     } finally {
-      setIsSaving(false); // This will run whether the save succeeds or fails
+      setIsSaving(false);
     }
   };
 
