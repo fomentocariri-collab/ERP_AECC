@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { User, UserRole } from '../types';
 import { X } from 'lucide-react';
 
@@ -23,32 +23,32 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onS
 
   const isEditing = !!existingUser;
 
-  useEffect(() => {
-    if (isOpen) {
-        if (isEditing) {
-          setName(existingUser.name);
-          setEmail(existingUser.email);
-          setRole(existingUser.role);
-          setPassword(''); // Password should be reset or optional when editing
-        } else {
-          resetForm();
-        }
-    }
-  }, [isOpen, existingUser, isEditing]);
-
-
-  if (!isOpen) {
-    return null;
-  }
-
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setName('');
     setEmail('');
     setPassword('');
     setRole('Associado');
     setError('');
     setIsSaving(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+        if (isEditing && existingUser) {
+          setName(existingUser.name);
+          setEmail(existingUser.email);
+          setRole(existingUser.role);
+          setPassword('');
+        } else {
+          resetForm();
+        }
+    }
+  }, [isOpen, existingUser, isEditing, resetForm]);
+
+
+  if (!isOpen) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,10 +63,10 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onS
     
     try {
         await onSave(userData);
-        resetForm();
         onClose();
     } catch (e) {
-        console.error(e);
+        console.error("Failed to save user", e);
+        // Parent toast will show the error
     } finally {
         setIsSaving(false);
     }

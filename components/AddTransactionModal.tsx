@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Transaction, Member } from '../types';
 import { X } from 'lucide-react';
 
@@ -30,11 +30,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
     }
   }, [description, showMemberSelector]);
 
-  if (!isOpen) {
-    return null;
-  }
-
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setDescription('Mensalidade');
     setAmount('');
     setType('Income');
@@ -42,7 +38,17 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
     setMemberId('');
     setError('');
     setIsSaving(false);
-  };
+  }, []);
+  
+  useEffect(() => {
+    if(isOpen) {
+        resetForm();
+    }
+  }, [isOpen, resetForm])
+
+  if (!isOpen) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,10 +74,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
           memberId: showMemberSelector ? memberId : undefined,
           memberName: showMemberSelector ? selectedMember?.name : undefined,
         });
-        resetForm();
         onClose();
     } catch(e) {
-        console.error(e)
+        console.error("Failed to add transaction", e);
     } finally {
         setIsSaving(false);
     }

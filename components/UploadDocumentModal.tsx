@@ -53,10 +53,9 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
 
     try {
         await onAddDocument(newDocumentData, selectedFile);
-        resetForm();
         onClose();
     } catch (e) {
-        console.error(e)
+        console.error("Failed to upload document", e)
     } finally {
         setIsSaving(false);
     }

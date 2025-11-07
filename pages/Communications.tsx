@@ -15,6 +15,7 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
     const [recipient, setRecipient] = useState('all');
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     const canPerformActions = userRole === 'Super Admin' || userRole === 'Financeiro';
 
@@ -24,6 +25,7 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
             alert('Assunto e Mensagem são obrigatórios.');
             return;
         }
+        setIsSaving(true);
 
         let recipientText = 'Todos os Membros';
         if (recipient === 'active') {
@@ -35,17 +37,22 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
             recipientText = selectedMember ? selectedMember.name : 'Desconhecido';
         }
 
-        await onAddCommunication({
-            subject,
-            message,
-            recipients: recipientText,
-            sentAt: new Date().toISOString()
-        });
-
-        // Reset form
-        setSubject('');
-        setMessage('');
-        setRecipient('all');
+        try {
+            await onAddCommunication({
+                subject,
+                message,
+                recipients: recipientText,
+                sentAt: new Date().toISOString()
+            });
+            // Reset form on success
+            setSubject('');
+            setMessage('');
+            setRecipient('all');
+        } catch (error) {
+            // Error is handled by the parent toast.
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -63,6 +70,7 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
                                 value={recipient}
                                 onChange={(e) => setRecipient(e.target.value)}
                                 className={INPUT_CLASS}
+                                disabled={isSaving}
                             >
                                 <option value="all">Todos os Membros</option>
                                 <option value="active">Membros Ativos</option>
@@ -83,6 +91,7 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
                                 value={subject}
                                 onChange={(e) => setSubject(e.target.value)}
                                 className={INPUT_CLASS} 
+                                disabled={isSaving}
                             />
                         </div>
                         <div>
@@ -94,11 +103,12 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                                 className={INPUT_CLASS}
+                                disabled={isSaving}
                             ></textarea>
                         </div>
                         <div className="flex justify-end">
-                            <button type="submit" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">
-                                <Send size={16} /> Enviar Mensagem
+                            <button type="submit" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait" disabled={isSaving}>
+                                <Send size={16} /> {isSaving ? 'Enviando...' : 'Enviar Mensagem'}
                             </button>
                         </div>
                     </form>

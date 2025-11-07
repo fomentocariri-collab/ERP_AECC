@@ -70,7 +70,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, o
         });
         onClose();
     } catch (e) {
-        console.error(e);
+        console.error("Failed to save event", e);
     } finally {
         setIsSaving(false);
     }

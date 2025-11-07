@@ -31,14 +31,18 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
     const [email, setEmail] = useState(currentUser.email);
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
 
     const handleProfileSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsSavingProfile(true);
         try {
             await onUpdateUser(currentUser.id, { name, email });
             showToast('Perfil atualizado com sucesso!');
         } catch (error: any) {
-            showToast(`Erro: ${error.message}`, 'error');
+            // Toast is shown by App.tsx
+        } finally {
+            setIsSavingProfile(false);
         }
     };
     
@@ -96,14 +100,16 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
                     <form className="space-y-4" onSubmit={handleProfileSubmit}>
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
-                            <input type="text" name="name" id="name" value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLASS} />
+                            <input type="text" name="name" id="name" value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLASS} disabled={isSavingProfile}/>
                         </div>
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                            <input type="email" name="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLASS} />
+                            <input type="email" name="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLASS} disabled={isSavingProfile}/>
                         </div>
                         <div className="text-right">
-                            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">Salvar Alterações</button>
+                            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait" disabled={isSavingProfile}>
+                                {isSavingProfile ? 'Salvando...' : 'Salvar Alterações'}
+                            </button>
                         </div>
                     </form>
                 </SettingsSection>

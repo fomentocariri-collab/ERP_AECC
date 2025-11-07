@@ -84,7 +84,7 @@ const App: React.FC = () => {
   };
   
   const generateErrorMessage = (action: string, error: any) => {
-    return `Erro ao ${action}: ${error.message}. Verifique as permissões (RLS) no Supabase.`;
+    return `Erro ao ${action}: ${error.message}.`;
   };
 
   const fetchData = useCallback(async () => {
@@ -120,20 +120,11 @@ const App: React.FC = () => {
       } finally {
         setAppLoading(false);
       }
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   useEffect(() => {
-    if (currentUser) {
-      fetchData();
-    } else {
-      setMembers([]);
-      setTransactions([]);
-      setEvents([]);
-      setDocuments([]);
-      setCommunications([]);
-      setAppLoading(false);
-    }
-  }, [currentUser, fetchData]);
+    fetchData();
+  }, [fetchData]);
 
   // CRUD HANDLERS (Direct Implementation for Robustness)
 
@@ -145,6 +136,7 @@ const App: React.FC = () => {
       await fetchData();
     } catch (error: any) {
       showToast(generateErrorMessage('adicionar membro', error), 'error');
+      throw error; // Re-throw to be caught in modal
     }
   };
 
@@ -156,6 +148,7 @@ const App: React.FC = () => {
       await fetchData();
     } catch (error: any) {
       showToast(generateErrorMessage('atualizar membro', error), 'error');
+      throw error;
     }
   };
   
@@ -178,6 +171,7 @@ const App: React.FC = () => {
       await fetchData();
     } catch (error: any) {
       showToast(generateErrorMessage('adicionar transação', error), 'error');
+      throw error;
     }
   };
 
@@ -200,6 +194,7 @@ const App: React.FC = () => {
       await fetchData();
     } catch (error: any) {
       showToast(generateErrorMessage('adicionar evento', error), 'error');
+      throw error;
     }
   };
 
@@ -211,6 +206,7 @@ const App: React.FC = () => {
       await fetchData();
     } catch (error: any) {
       showToast(generateErrorMessage('atualizar evento', error), 'error');
+      throw error;
     }
   };
 
@@ -236,7 +232,6 @@ const App: React.FC = () => {
 
       const { error: insertError } = await supabase.from('documents').insert([{ ...camelToSnake(docData), url: urlData.publicUrl }]).select().single();
       if (insertError) {
-        // Attempt to clean up storage if DB insert fails
         await supabase.storage.from('documents').remove([filePath]);
         throw insertError;
       }
@@ -245,6 +240,7 @@ const App: React.FC = () => {
       await fetchData();
     } catch (error: any) {
       showToast(generateErrorMessage('adicionar documento', error), 'error');
+      throw error;
     }
   };
 

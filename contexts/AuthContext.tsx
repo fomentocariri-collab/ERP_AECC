@@ -1,7 +1,7 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../supabaseClient';
-import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -30,7 +30,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('id', supabaseUser.id)
         .single();
       if (error || !profile) {
-        console.warn("User profile not found for uid:", supabaseUser.id);
+        console.warn("User profile not found for uid:", supabaseUser.id, error);
         return null;
       }
       return {
@@ -44,6 +44,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
   
   const fetchUsers = useCallback(async () => {
+    if (!currentUser || currentUser.role !== 'Super Admin') {
+        setUsers([]);
+        return;
+    };
     try {
       const { data, error } = await supabase.from('profiles').select('*');
       if (error) throw error;
@@ -58,18 +62,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.error("Error fetching users (might be due to permissions):", error.message);
         setUsers([]);
     }
-  }, []);
+  }, [currentUser]);
 
   // Central listener for auth state changes
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const userProfile = await fetchUserProfile(session?.user ?? null);
-      setCurrentUser(userProfile);
-      setLoading(false);
-    }
-    checkUser();
-
+    setLoading(true);
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         const userProfile = await fetchUserProfile(session?.user ?? null);
@@ -83,13 +80,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [fetchUserProfile]);
 
-  // Fetch users only when the current user changes (and is an admin)
+  // Fetch users list when current user changes
   useEffect(() => {
-    if (currentUser && currentUser.role === 'Super Admin') {
       fetchUsers();
-    } else {
-      setUsers([]);
-    }
   }, [currentUser, fetchUsers]);
 
   const login = useCallback(async (email: string, pass: string) => {
@@ -102,7 +95,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await supabase.auth.signOut();
         throw new Error("Perfil de usuário não encontrado. Contate o administrador.");
     }
-    setCurrentUser(userProfile);
+    // The onAuthStateChange listener will handle setting the user
   }, [fetchUserProfile]);
 
   const logout = useCallback(async () => {
@@ -112,9 +105,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const addUser = useCallback(async (userData: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => {
+    // 1. Get the current admin's session to restore it later
     const { data: { session: adminSession } } = await supabase.auth.getSession();
     if (!adminSession) throw new Error("Sessão de administrador necessária para esta operação.");
     
+    // 2. Sign up the new user. This temporarily signs out the admin.
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -127,12 +122,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     });
 
+    // 3. CRITICAL: Restore the admin session immediately.
     const { error: sessionError } = await supabase.auth.setSession(adminSession);
     
     if (sessionError) {
         console.error("CRITICAL: Failed to restore admin session.", sessionError);
+        // If restoring fails, log out completely to force a clean state.
         await logout();
-        throw new Error("Sua sessão expirou. Por favor, faça login novamente.");
+        throw new Error("Sua sessão expirou durante a criação do usuário. Por favor, faça login novamente.");
     }
 
     if (signUpError) {
@@ -141,6 +138,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     if (!signUpData.user) throw new Error("Não foi possível criar o usuário.");
     
+    // Refresh the user list
     await fetchUsers();
   }, [fetchUsers, logout]);
   
@@ -154,20 +152,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      await fetchUsers();
      
      if (currentUser && currentUser.id === userId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        const updatedProfile = await fetchUserProfile(user);
+        // FIX: Cast to unknown first to resolve the type mismatch between the local User type and SupabaseUser type.
+        const updatedProfile = await fetchUserProfile(currentUser as unknown as SupabaseUser);
         setCurrentUser(updatedProfile);
      }
   }, [currentUser, fetchUserProfile, fetchUsers]);
   
   const deleteUser = useCallback(async (userId: string) => {
+    // Note: Deleting a user from auth.users requires admin privileges and is best
+    // handled via a Supabase Edge Function for security.
     alert("Funcionalidade em desenvolvimento. A exclusão de usuários deve ser feita no painel do Supabase.");
     console.warn(`Request to delete user ${userId} blocked. Implement a secure server-side function.`);
   }, []);
 
-  const value = { currentUser, loading, users, login, logout, addUser, updateUser, deleteUser };
+  const value = useMemo(() => ({ currentUser, loading, users, login, logout, addUser, updateUser, deleteUser }),
+    [currentUser, loading, users, login, logout, addUser, updateUser, deleteUser]
+  );
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

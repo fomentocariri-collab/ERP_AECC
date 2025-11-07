@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Member, MemberRole } from '../types';
 import { X, UserSquare } from 'lucide-react';
 
@@ -29,7 +29,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
 
   const isEditing = !!existingMember;
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setName('');
     setEmail('');
     setStatus('Pending');
@@ -44,28 +44,28 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
     setAvatarUrl('');
     setError('');
     setIsSaving(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
-      if (isEditing) {
+      if (isEditing && existingMember) {
         setName(existingMember.name);
         setEmail(existingMember.email);
         setStatus(existingMember.status);
-        setCpf(existingMember.cpf);
-        setAddress(existingMember.address);
-        setCity(existingMember.city);
-        setState(existingMember.state);
-        setPhone(existingMember.phone);
+        setCpf(existingMember.cpf || '');
+        setAddress(existingMember.address || '');
+        setCity(existingMember.city || '');
+        setState(existingMember.state || '');
+        setPhone(existingMember.phone || '');
         setBirthDate(existingMember.birthDate || '');
         setAdmissionDate(existingMember.admissionDate);
         setRole(existingMember.role);
-        setAvatarUrl(existingMember.avatarUrl);
+        setAvatarUrl(existingMember.avatarUrl || '');
       } else {
         resetForm();
       }
     }
-  }, [isOpen, existingMember, isEditing]);
+  }, [isOpen, existingMember, isEditing, resetForm]);
   
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -108,13 +108,14 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
     };
 
     try {
-        await onSave(memberData);
-        onClose();
-    } catch (e) {
-        // Error is handled by the parent component's toast notification
-        console.error(e);
+      await onSave(memberData);
+      onClose(); // Close modal on success
+    } catch (error) {
+      // Error is handled by the parent component's toast notification
+      // We don't close the modal on error, so the user can see the form
+      console.error("Failed to save member:", error);
     } finally {
-        setIsSaving(false);
+      setIsSaving(false); // This will run whether the save succeeds or fails
     }
   };
 
