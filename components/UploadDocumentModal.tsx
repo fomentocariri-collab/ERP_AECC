@@ -63,7 +63,6 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
         await onAddDocument(newDocumentData, selectedFile);
         onClose();
     } catch (e) {
-        // Error is handled by the parent component's toast
         console.error("Failed to upload document", e)
     } finally {
         setIsSaving(false);

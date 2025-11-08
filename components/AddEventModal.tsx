@@ -70,7 +70,6 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, o
         });
         onClose();
     } catch (e) {
-        // Error is handled by the parent component's toast
         console.error("Failed to save event", e);
     } finally {
         setIsSaving(false);

@@ -65,7 +65,6 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onS
         await onSave(userData);
         onClose();
     } catch (e) {
-        // Error is handled by the parent component's toast
         console.error("Failed to save user", e);
     } finally {
         setIsSaving(false);

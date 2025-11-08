@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogIn, Loader2, AlertTriangle, Clipboard } from 'lucide-react';
-// FIX: Corrected import name to match the export from constants.tsx.
 import { LOGO_BASE64 } from '../constants';
 
 const RLS_FIX_SCRIPT = `-- ETAPA 1: Remova políticas antigas e recursivas.
