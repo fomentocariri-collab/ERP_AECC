@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, Loader2, AlertTriangle, Clipboard } from 'lucide-react';
+import { LogIn, Loader2, AlertTriangle, Clipboard, Check, ExternalLink } from 'lucide-react';
 import { LOGO_BASE64 } from '../constants';
+import { supabaseProjectId } from '../supabaseClient';
 
 const RLS_FIX_SCRIPT = `-- ETAPA 1: Remova políticas antigas e recursivas.
 DROP POLICY IF EXISTS "Profiles: Super Admin full access" ON public.profiles;
@@ -32,6 +33,8 @@ USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'Super Admin'
 
 const RLSInfoPanel: React.FC = () => {
   const [copied, setCopied] = useState(false);
+  const supabaseSqlUrl = `https://app.supabase.com/project/${supabaseProjectId}/sql/new`;
+
   const handleCopy = () => {
     navigator.clipboard.writeText(RLS_FIX_SCRIPT);
     setCopied(true);
@@ -47,14 +50,25 @@ const RLSInfoPanel: React.FC = () => {
         <div className="ml-3">
           <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">Ação Necessária: Corrija as Permissões do Banco de Dados</p>
           <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
-            <p>O login falhou devido a um erro de permissão (recursão infinita na RLS) no Supabase. Para corrigir, execute o script SQL abaixo no seu painel do Supabase:</p>
+            <p>O login falhou devido a um erro de permissão (RLS) no Supabase. Para corrigir, copie o script abaixo e execute-o no Editor SQL do seu projeto.</p>
             <div className="mt-2 p-2 relative bg-gray-800 dark:bg-gray-900 text-white rounded-md font-mono text-xs overflow-x-auto">
               <pre><code>{RLS_FIX_SCRIPT}</code></pre>
-              <button onClick={handleCopy} className="absolute top-2 right-2 p-1 bg-gray-600 hover:bg-gray-500 rounded-md">
-                {copied ? <Clipboard size={14} /> : <Clipboard size={14} />}
+              <button onClick={handleCopy} className="absolute top-2 right-2 p-1.5 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition-all">
+                {copied ? <Check size={14} className="text-green-400"/> : <Clipboard size={14} />}
               </button>
             </div>
-            <p className="mt-2">Vá para: <strong>Supabase Dashboard → SQL Editor → New query</strong>, cole o script e clique em "RUN".</p>
+             <div className="mt-4 flex gap-2">
+               <a 
+                href={supabaseSqlUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-primary-700 rounded-md hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <ExternalLink size={14} />
+                Abrir Editor SQL
+              </a>
+            </div>
+            {supabaseProjectId && <p className="mt-2 text-xs">Isso abrirá uma nova aba para o Editor SQL. Cole o script e clique em "RUN".</p>}
           </div>
         </div>
       </div>
