@@ -40,7 +40,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
             await onUpdateUser(currentUser.id, { name, email });
             showToast('Perfil atualizado com sucesso!');
         } catch (error: any) {
-            showToast(`Erro ao atualizar perfil: ${error.message}`, 'error');
+            // Error toast is already shown by handleCrudOperation
         } finally {
             setIsSavingProfile(false);
         }

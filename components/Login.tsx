@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogIn, Loader2, AlertTriangle, Clipboard, Check, ExternalLink } from 'lucide-react';
 import { LOGO_BASE64 } from '../constants';
-import { supabaseProjectId } from '../supabaseClient';
+import { supabaseProjectId } from '../src/lib/supabaseClient.js';
 
 const RLS_FIX_SCRIPT = `-- ETAPA 1: Remova políticas antigas e recursivas.
 DROP POLICY IF EXISTS "Profiles: Super Admin full access" ON public.profiles;
