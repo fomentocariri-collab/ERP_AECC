@@ -68,7 +68,7 @@ const camelToSnake = (obj: any): any => {
 };
 
 const App: React.FC = () => {
-  const { currentUser, loading, users, addUser, updateUser, deleteUser } = useAuth();
+  const { currentUser, loading, users, addUser, updateUser, deleteUser, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
   
   const [members, setMembers] = useState<Member[]>([]);
@@ -138,16 +138,27 @@ const App: React.FC = () => {
   // Generic CRUD Handler
   const handleCrudOperation = async (
     action: string,
-    operation: () => Promise<{ error: any }>,
+    operation: () => Promise<{ error: any | null, data?: any }>,
     throwOnError = false
   ) => {
     try {
       const { error } = await operation();
-      if (error) throw error;
+      if (error) {
+        // Check for JWT expiration or other auth errors that invalidate the session
+        if (error.code === 'PGRST301' || error.status === 401 || (error.message && error.message.includes('JWT'))) {
+            showToast('Sua sessão expirou. Por favor, faça login novamente.', 'error');
+            setTimeout(() => logout(), 2000); // Give user time to see toast
+            throw error; // Still throw to stop current operation chain
+        }
+        throw error;
+      }
       showToast(`${action.charAt(0).toUpperCase() + action.slice(1)} com sucesso!`);
       await fetchData();
     } catch (error: any) {
-      showToast(generateErrorMessage(action.toLowerCase(), error), 'error');
+      // Don't show toast again if it was an auth error
+      if (error.code !== 'PGRST301' && error.status !== 401 && !(error.message && error.message.includes('JWT'))) {
+        showToast(generateErrorMessage(action.toLowerCase(), error), 'error');
+      }
       if (throwOnError) {
         throw error;
       }

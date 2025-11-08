@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../supabaseClient';
-import type { Session } from '@supabase/supabase-js';
+import type { AuthChangeEvent, User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -21,7 +21,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
 
-  const fetchUserProfile = useCallback(async (supabaseUser: Session['user'] | null): Promise<User | null> => {
+  const fetchUserProfile = useCallback(async (supabaseUser: SupabaseUser | null): Promise<User | null> => {
     if (!supabaseUser) return null;
     try {
       const { data: profile, error } = await supabase
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     setLoading(true);
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (_event: AuthChangeEvent, session: Session | null) => {
         try {
             const userProfile = await fetchUserProfile(session?.user ?? null);
             setCurrentUser(prevUser => {
@@ -110,7 +110,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (error.message && error.message.includes('infinite recursion')) {
              throw new Error("RLS_RECURSION");
         }
-        throw new Error(`Login OK, mas perfil não encontrado. Verifique a RLS (Row Level Security) da tabela 'profiles' no Supabase. É preciso permitir que usuários leiam o próprio perfil.`);
+        throw new Error(`Login OK, mas perfil não encontrado. Verifique a RLS (Row Level Security) da tabela 'profiles' no Supabase.`);
     }
   }, [fetchUserProfile]);
 
@@ -126,18 +126,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { session: adminSession } } = await supabase.auth.getSession();
     if (!adminSession) throw new Error("Sessão de administrador necessária.");
     
-    const { error: signUpError } = await supabase.auth.signUp({
+    // Sign up the new user
+    const { data: { user: newUser }, error: signUpError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
-        options: {
-            data: {
-                name: userData.name,
-                role: userData.role,
-                avatar_url: `https://i.pravatar.cc/150?u=${userData.email}`
-            }
-        }
     });
+    
+    // If sign up failed, restore admin session and throw error
+    if (signUpError) {
+        await supabase.auth.setSession({
+            access_token: adminSession.access_token,
+            refresh_token: adminSession.refresh_token,
+        });
+        throw new Error(`Erro ao criar usuário: ${signUpError.message}`);
+    }
 
+    if (!newUser) {
+        await supabase.auth.setSession({
+            access_token: adminSession.access_token,
+            refresh_token: adminSession.refresh_token,
+        });
+        throw new Error("Não foi possível criar o novo usuário.");
+    }
+
+    // Update the new user's profile with additional data
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        name: userData.name,
+        role: userData.role,
+        avatar_url: `https://i.pravatar.cc/150?u=${userData.email}`
+      })
+      .eq('id', newUser.id);
+      
+    // Restore the admin session regardless of profile update outcome
     const { error: sessionError } = await supabase.auth.setSession({
         access_token: adminSession.access_token,
         refresh_token: adminSession.refresh_token,
@@ -149,8 +171,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error("Sua sessão expirou. Por favor, faça login novamente.");
     }
 
-    if (signUpError) {
-        throw new Error(`Erro ao criar usuário: ${signUpError.message}`);
+    if (profileError) {
+        // Here you might want to clean up the created user if the profile update fails
+        console.error("User created but profile update failed:", profileError);
+        throw new Error(`Usuário criado, mas falha ao salvar perfil: ${profileError.message}`);
     }
     
     await fetchUsers();
@@ -175,6 +199,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const deleteUser = useCallback(async (userId: string) => {
     alert("Funcionalidade em desenvolvimento. A exclusão de usuários deve ser feita no painel do Supabase.");
     console.warn(`Request to delete user ${userId} blocked. Implement a secure server-side function.`);
+    // For security reasons, user deletion should be handled by a server-side function (e.g., a Supabase Edge Function)
+    // that verifies the caller's permissions before proceeding.
+    // const { error } = await supabase.functions.invoke('delete-user', { body: { userId } });
+    // if(error) throw new Error(error.message);
+    // await fetchUsers();
   }, []);
 
   const value = useMemo(() => ({ currentUser, loading, users, login, logout, addUser, updateUser, deleteUser }),

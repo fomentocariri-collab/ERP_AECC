@@ -33,7 +33,7 @@ USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'Super Admin'
 
 const RLSInfoPanel: React.FC = () => {
   const [copied, setCopied] = useState(false);
-  const supabaseSqlUrl = `https://app.supabase.com/project/${supabaseProjectId}/sql/new`;
+  const supabaseSqlUrl = `https://supabase.com/dashboard/project/${supabaseProjectId}/sql/new`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(RLS_FIX_SCRIPT);
@@ -68,7 +68,10 @@ const RLSInfoPanel: React.FC = () => {
                 Abrir Editor SQL
               </a>
             </div>
-            {supabaseProjectId && <p className="mt-2 text-xs">Isso abrirá uma nova aba para o Editor SQL. Cole o script e clique em "RUN".</p>}
+            {supabaseProjectId ? 
+                <p className="mt-2 text-xs">Isso abrirá uma nova aba para o Editor SQL. Cole o script e clique em "RUN".</p> 
+                : <p className="mt-2 text-xs text-yellow-500">Não foi possível gerar o link direto. Acesse o Editor SQL no painel do Supabase manualmente.</p>
+            }
           </div>
         </div>
       </div>

@@ -66,6 +66,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onS
         onClose();
     } catch (e) {
         console.error("Failed to save user", e);
+        setError((e as Error).message || "Ocorreu um erro desconhecido.");
     } finally {
         setIsSaving(false);
     }

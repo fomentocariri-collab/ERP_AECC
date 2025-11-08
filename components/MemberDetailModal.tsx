@@ -31,7 +31,7 @@ const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.
 );
 
 
-export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({ isOpen, onClose, member, transactions }) => {
+export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({ isOpen, onClose, member, transactions, events }) => {
   if (!isOpen) return null;
 
   return (
