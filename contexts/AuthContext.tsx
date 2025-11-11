@@ -68,18 +68,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(true);
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, session: Session | null) => {
+        if (!session) {
+          setCurrentUser(null);
+          setLoading(false);
+          return;
+        }
+        
         try {
-            const userProfile = await fetchUserProfile(session?.user ?? null);
-            setCurrentUser(prevUser => {
-                if (JSON.stringify(prevUser) === JSON.stringify(userProfile)) {
-                    return prevUser;
-                }
-                return userProfile;
-            });
+            const userProfile = await fetchUserProfile(session.user);
+            // Only update state if the profile has actually changed to avoid re-renders
+            setCurrentUser(prevUser => 
+                JSON.stringify(prevUser) !== JSON.stringify(userProfile) ? userProfile : prevUser
+            );
         } catch(e) {
-            console.error("Auth state change error, signing out.", e);
-            await supabase.auth.signOut();
-            setCurrentUser(null);
+            console.error("Failed to fetch user profile on auth change, but session is valid. User will not be logged out.", e);
+            // DO NOT sign out here. A temporary network error shouldn't kill the session.
+            // If the token is truly invalid, subsequent API calls will fail and the user will be prompted to log in again.
         } finally {
             setLoading(false);
         }
