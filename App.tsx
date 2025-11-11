@@ -84,7 +84,11 @@ const App: React.FC = () => {
   };
   
   const generateErrorMessage = (action: string, error: any) => {
-    return `Erro ao ${action}: ${error.message}. Verifique as permissões (RLS) no Supabase.`;
+    const defaultMessage = `Erro ao ${action}: ${error.message}.`;
+    if (action.includes('storage') || action.includes('arquivo')) {
+        return `${defaultMessage} Verifique as Políticas de Acesso (Policies) do Storage no Supabase.`;
+    }
+    return `${defaultMessage} Verifique as permissões de acesso (RLS) no Supabase.`;
   };
 
   const fetchData = useCallback(async () => {
@@ -198,33 +202,49 @@ const App: React.FC = () => {
   };
 
   const handleAddDocument = async (docData: Omit<Document, 'id' | 'url'>, file: File) => {
+    const filePath = `${currentUser!.id}/${new Date().getTime()}-${file.name}`;
     try {
-      const filePath = `${currentUser!.id}/${new Date().getTime()}-${file.name}`;
-      
+      // 1. Upload file to storage
       const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        throw { ...uploadError, context: 'storage' };
+      }
 
+      // 2. Get public URL
       const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
       if (!urlData.publicUrl) {
           await supabase.storage.from('documents').remove([filePath]);
-          throw new Error("Não foi possível obter a URL pública do arquivo.");
+          throw { message: "Não foi possível obter a URL pública do arquivo.", context: 'url' };
       }
 
+      // 3. Insert metadata into database
       const dbRecord = { ...camelToSnake(docData), url: urlData.publicUrl };
-      await handleCrudOperation(
-          'adicionar documento',
-          async () => supabase.from('documents').insert([dbRecord]).select().single(),
-          true
-      );
+      const { error: dbError } = await supabase.from('documents').insert([dbRecord]).select().single();
+      if (dbError) {
+        await supabase.storage.from('documents').remove([filePath]); // Cleanup
+        throw { ...dbError, context: 'database' };
+      }
+      
+      // 4. Success
+      showToast('Documento adicionado com sucesso!');
+      await fetchData();
+
     } catch (error: any) {
         console.error(`Error during 'adicionar documento':`, error);
+        
         const isAuthError = error.code === 'PGRST301' || error.status === 401 || (error.message && (error.message.includes('JWT') || error.message.includes('token')));
         if (isAuthError) {
             showToast('Sua sessão expirou. Você será desconectado.', 'error');
             setTimeout(() => logout(), 1500);
-        } else {
-            showToast(generateErrorMessage('adicionar documento', error), 'error');
+            throw error;
         }
+
+        let action = 'adicionar documento';
+        if (error.context === 'storage') action = 'carregar arquivo para o storage';
+        else if (error.context === 'url') action = 'obter URL pública';
+        else if (error.context === 'database') action = 'salvar informações do documento';
+        
+        showToast(generateErrorMessage(action, error), 'error');
         throw error;
     }
   };
