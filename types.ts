@@ -1,4 +1,4 @@
-export type Page = 'Dashboard' | 'Members' | 'Financial' | 'Events' | 'Documents' | 'Communications' | 'Settings';
+export type Page = 'Dashboard' | 'Members' | 'Financial' | 'Events' | 'Documents' | 'Communications' | 'Settings' | 'Sobre';
 
 export type UserRole = 'Super Admin' | 'Financeiro' | 'Associado';
 
