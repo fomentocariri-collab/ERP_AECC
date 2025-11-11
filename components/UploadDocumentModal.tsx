@@ -65,12 +65,11 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
         onClose();
     } catch (e: any) {
         console.error("Failed to upload document", e);
-        // The error is re-thrown from App.tsx, check for its context property
         if (e.context === 'storage') {
-            onClose(); // Close the modal
-            onStorageError?.(); // Then trigger the panel on the page behind it.
+            onClose(); 
+            onStorageError?.(); 
         } else {
-            onClose(); // Close for other errors, as the toast is enough.
+            onClose(); 
         }
     } finally {
         setIsSaving(false);

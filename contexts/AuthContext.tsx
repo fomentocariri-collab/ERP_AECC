@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { User, UserRole } from '../types';
-// Fix: Corrected the import path for the supabase client.
 import { supabase } from '../supabaseClient';
 import type { AuthChangeEvent, User as SupabaseUser, Session } from '@supabase/supabase-js';
 
@@ -82,8 +81,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             );
         } catch(e) {
             console.error("Failed to fetch user profile on auth change, but session is valid. User will not be logged out.", e);
-            // DO NOT sign out here. A temporary network error shouldn't kill the session.
-            // If the token is truly invalid, subsequent API calls will fail and the user will be prompted to log in again.
         } finally {
             setLoading(false);
         }
@@ -177,7 +174,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     if (profileError) {
-        // Here you might want to clean up the created user if the profile update fails
         console.error("User created but profile update failed:", profileError);
         throw new Error(`Usuário criado, mas falha ao salvar perfil: ${profileError.message}`);
     }
@@ -204,11 +200,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const deleteUser = useCallback(async (userId: string) => {
     alert("Funcionalidade em desenvolvimento. A exclusão de usuários deve ser feita no painel do Supabase.");
     console.warn(`Request to delete user ${userId} blocked. Implement a secure server-side function.`);
-    // For security reasons, user deletion should be handled by a server-side function (e.g., a Supabase Edge Function)
-    // that verifies the caller's permissions before proceeding.
-    // const { error } = await supabase.functions.invoke('delete-user', { body: { userId } });
-    // if(error) throw new Error(error.message);
-    // await fetchUsers();
   }, []);
 
   const value = useMemo(() => ({ currentUser, loading, users, login, logout, addUser, updateUser, deleteUser }),

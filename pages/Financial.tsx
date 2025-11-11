@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { PlusCircle, Download, ArrowUpCircle, ArrowDownCircle, Receipt, Trash2 } from 'lucide-react';
 import { Transaction, Member, UserRole } from '../types';
 import { AddTransactionModal } from '../components/AddTransactionModal';
+import { ReportModal } from '../components/ReportModal';
 
 interface FinancialProps {
     transactions: Transaction[];
@@ -12,7 +13,8 @@ interface FinancialProps {
 }
 
 export const Financial: React.FC<FinancialProps> = ({ transactions, members, onAddTransaction, onDeleteTransaction, userRole }) => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
     const canPerformActions = userRole === 'Super Admin' || userRole === 'Financeiro';
 
@@ -59,10 +61,16 @@ export const Financial: React.FC<FinancialProps> = ({ transactions, members, onA
     return (
         <>
         <AddTransactionModal 
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
+            isOpen={isAddModalOpen}
+            onClose={() => setIsAddModalOpen(false)}
             onAddTransaction={onAddTransaction}
             members={members}
+        />
+        <ReportModal
+            isOpen={isReportModalOpen}
+            onClose={() => setIsReportModalOpen(false)}
+            members={members}
+            transactions={transactions}
         />
         <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -74,7 +82,7 @@ export const Financial: React.FC<FinancialProps> = ({ transactions, members, onA
                     <h3 className="font-medium">Despesa Total</h3>
                     <p className="text-3xl font-bold">R$ {totalExpense.toFixed(2)}</p>
                 </div>
-                <div className="bg-primary-100 dark:bg-primary-900/50 p-6 rounded-xl text-primary-800 dark:text-primary-200">
+                <div className="bg-secondary-100 dark:bg-secondary-900/50 p-6 rounded-xl text-secondary-800 dark:text-secondary-200">
                     <h3 className="font-medium">Saldo</h3>
                     <p className="text-3xl font-bold">R$ {balance.toFixed(2)}</p>
                 </div>
@@ -84,15 +92,17 @@ export const Financial: React.FC<FinancialProps> = ({ transactions, members, onA
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-semibold">Transações Recentes</h2>
                     <div className="flex items-center gap-2">
-                         <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
-                            <Download size={16} /> Gerar Relatório
-                        </button>
                         {canPerformActions && (
-                            <button 
-                                onClick={() => setIsModalOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800">
-                                <PlusCircle size={16} /> Adicionar Transação
-                            </button>
+                            <>
+                                <button onClick={() => setIsReportModalOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
+                                    <Download size={16} /> Gerar Relatório
+                                </button>
+                                <button 
+                                    onClick={() => setIsAddModalOpen(true)}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800">
+                                    <PlusCircle size={16} /> Adicionar Transação
+                                </button>
+                            </>
                         )}
                     </div>
                 </div>
