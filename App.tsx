@@ -291,7 +291,7 @@ const App: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
-        <Loader2 className="h-12 w-12 animate-spin text-primary-700" />
+        <Loader2 className="h-12 w-12 animate-spin text-secondary-700" />
       </div>
     );
   }
@@ -310,7 +310,7 @@ const App: React.FC = () => {
           <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
             {appLoading ? (
               <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-12 w-12 animate-spin text-primary-700" />
+                <Loader2 className="h-12 w-12 animate-spin text-secondary-700" />
               </div>
             ) : (
               renderPage()

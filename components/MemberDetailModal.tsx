@@ -12,7 +12,7 @@ interface MemberDetailModalProps {
 
 const DetailRow: React.FC<{ icon: React.ReactNode; label: string; value: string | null | undefined;}> = ({ icon, label, value }) => (
     <div className="flex items-start text-sm py-2">
-        <div className="text-primary-700 dark:text-primary-400 w-6 h-6 flex-shrink-0 flex items-center justify-center">{icon}</div>
+        <div className="text-secondary-700 dark:text-secondary-400 w-6 h-6 flex-shrink-0 flex items-center justify-center">{icon}</div>
         <div className="ml-3">
             <p className="font-medium text-gray-500 dark:text-gray-400">{label}</p>
             <p className="text-gray-900 dark:text-gray-200">{value || 'Não informado'}</p>
@@ -22,7 +22,7 @@ const DetailRow: React.FC<{ icon: React.ReactNode; label: string; value: string 
 
 const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => (
     <div className="border-t dark:border-gray-700 pt-4">
-        <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-primary-800 dark:text-primary-300">
+        <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-secondary-800 dark:text-secondary-300">
             {icon}
             {title}
         </h3>
@@ -46,7 +46,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({ isOpen, on
       >
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-4">
-            <img src={member.avatarUrl} alt={member.name} className="w-16 h-16 rounded-full object-cover border-2 border-primary-500" />
+            <img src={member.avatarUrl} alt={member.name} className="w-16 h-16 rounded-full object-cover border-2 border-secondary-500" />
             <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{member.name}</h2>
                 <p className="text-gray-500 dark:text-gray-400">{member.email}</p>

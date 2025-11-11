@@ -10,7 +10,7 @@ interface AddEventModalProps {
 }
 
 const eventTypes: EventType[] = ['Feira', 'Reunião Ordinária', 'Encontro', 'Oficina', 'Treinamento', 'Outros'];
-const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500";
+const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-500 focus:ring-secondary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-secondary-500 dark:focus:ring-secondary-500";
 
 
 export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onSave, existingEvent }) => {
@@ -140,7 +140,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, o
             <button
               type="submit"
               disabled={isSaving}
-              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait"
+              className="px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800 disabled:bg-secondary-400 disabled:cursor-wait"
             >
               {isSaving ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Salvar Evento')}
             </button>

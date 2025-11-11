@@ -56,8 +56,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
                 font-medium rounded-md cursor-pointer
                 transition-colors group
                 ${currentPage === item.name
-                  ? 'bg-gradient-to-tr from-primary-200 to-primary-100 text-primary-800 dark:from-primary-900 dark:to-primary-800 dark:text-white'
-                  : 'hover:bg-primary-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  ? 'bg-gradient-to-tr from-secondary-200 to-secondary-100 text-secondary-800 dark:from-secondary-900 dark:to-secondary-800 dark:text-white'
+                  : 'hover:bg-secondary-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
                 }
               `}
             >
@@ -71,10 +71,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
               {!expanded && (
                 <div className={`
                   absolute left-full rounded-md px-2 py-1 ml-6
-                  bg-primary-100 text-primary-800 text-sm
+                  bg-secondary-100 text-secondary-800 text-sm
                   invisible opacity-20 -translate-x-3 transition-all
                   group-hover:visible group-hover:opacity-100 group-hover:translate-x-0
-                  dark:bg-primary-900 dark:text-primary-200
+                  dark:bg-secondary-900 dark:text-secondary-200
                 `}>
                   {item.name}
                 </div>

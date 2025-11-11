@@ -72,7 +72,7 @@ const RLSInfoPanel: React.FC = () => {
                 href={supabaseSqlUrl} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-primary-700 rounded-md hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-secondary-700 rounded-md hover:bg-secondary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500"
               >
                 <ExternalLink size={14} />
                 Abrir Editor SQL
@@ -118,7 +118,7 @@ export const Login: React.FC = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-primary-100 dark:from-gray-900 dark:to-primary-950/50">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-secondary-100 dark:from-gray-900 dark:to-secondary-950/50">
             <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
                 <div className="text-center space-y-2">
                     {LOGO_BASE64 !== "[PLACEHOLDER_LOGO]" && 
@@ -146,7 +146,7 @@ export const Login: React.FC = () => {
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 placeholder-gray-500 text-gray-900 dark:text-gray-200 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 placeholder-gray-500 text-gray-900 dark:text-gray-200 rounded-t-md focus:outline-none focus:ring-secondary-500 focus:border-secondary-500 focus:z-10 sm:text-sm"
                                 placeholder="Email"
                                 disabled={loading}
                             />
@@ -161,7 +161,7 @@ export const Login: React.FC = () => {
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 placeholder-gray-500 text-gray-900 dark:text-gray-200 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 placeholder-gray-500 text-gray-900 dark:text-gray-200 rounded-b-md focus:outline-none focus:ring-secondary-500 focus:border-secondary-500 focus:z-10 sm:text-sm"
                                 placeholder="Senha"
                                 disabled={loading}
                             />
@@ -178,13 +178,13 @@ export const Login: React.FC = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-700 hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-primary-400 disabled:cursor-not-allowed transition-colors"
+                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-secondary-700 hover:bg-secondary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500 disabled:bg-secondary-400 disabled:cursor-not-allowed transition-colors"
                         >
                             <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                                 {loading ? (
-                                    <Loader2 className="h-5 w-5 text-primary-300 animate-spin" />
+                                    <Loader2 className="h-5 w-5 text-secondary-300 animate-spin" />
                                 ) : (
-                                    <LogIn className="h-5 w-5 text-primary-500 group-hover:text-primary-400" />
+                                    <LogIn className="h-5 w-5 text-secondary-500 group-hover:text-secondary-400" />
                                 )}
                             </span>
                             {loading ? 'Entrando...' : 'Entrar'}

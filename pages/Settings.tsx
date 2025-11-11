@@ -3,7 +3,7 @@ import { User, UserRole } from '../types';
 import { PlusCircle, Edit, Trash2, Shield } from 'lucide-react';
 import { AddUserModal } from '../components/AddUserModal';
 
-const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500";
+const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-500 focus:ring-secondary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-secondary-500 dark:focus:ring-secondary-500";
 
 interface SettingsProps {
     currentUser: User;
@@ -107,7 +107,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
                             <input type="email" name="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLASS} disabled={isSavingProfile}/>
                         </div>
                         <div className="text-right">
-                            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait" disabled={isSavingProfile}>
+                            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800 disabled:bg-secondary-400 disabled:cursor-wait" disabled={isSavingProfile}>
                                 {isSavingProfile ? 'Salvando...' : 'Salvar Alterações'}
                             </button>
                         </div>
@@ -118,7 +118,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
                     <SettingsSection title="Gestão de Usuários" description="Adicione, edite ou remova usuários do sistema.">
                         <div className="space-y-4">
                             <div className="flex justify-end">
-                                <button onClick={handleOpenAddUserModal} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">
+                                <button onClick={handleOpenAddUserModal} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800">
                                     <PlusCircle size={16} /> Adicionar Usuário
                                 </button>
                             </div>
@@ -139,7 +139,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
                                             </span>
                                             <div>
                                                 <button onClick={() => handleOpenEditUserModal(user)} className="p-2 text-gray-500 hover:text-blue-600"><Edit size={16} /></button>
-                                                <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-500 hover:text-primary-700 dark:hover:text-primary-500"><Trash2 size={16} /></button>
+                                                <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-500 hover:text-red-600 dark:hover:text-red-500"><Trash2 size={16} /></button>
                                             </div>
                                         </div>
                                     </li>

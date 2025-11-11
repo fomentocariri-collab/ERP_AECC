@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Send, Clock, MessageSquareX } from 'lucide-react';
 import { Communication, Member, UserRole } from '../types';
 
-const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500 disabled:opacity-50";
+const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-500 focus:ring-secondary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-secondary-500 dark:focus:ring-secondary-500 disabled:opacity-50";
 
 interface CommunicationsProps {
     members: Member[];
@@ -107,7 +107,7 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
                             ></textarea>
                         </div>
                         <div className="flex justify-end">
-                            <button type="submit" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait" disabled={isSaving}>
+                            <button type="submit" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800 disabled:bg-secondary-400 disabled:cursor-wait" disabled={isSaving}>
                                 <Send size={16} /> {isSaving ? 'Enviando...' : 'Enviar Mensagem'}
                             </button>
                         </div>
@@ -124,7 +124,7 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
                 <h2 className="text-xl font-semibold mb-4">Histórico de Envios</h2>
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                     {communications.length > 0 ? communications.map(comm => (
-                        <div key={comm.id} className="border-l-4 border-primary-500 pl-4">
+                        <div key={comm.id} className="border-l-4 border-secondary-500 pl-4">
                             <p className="font-semibold text-sm">{comm.subject}</p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Para: {comm.recipients}</p>
                             <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center mt-1"><Clock size={12} className="mr-1.5"/>{new Date(comm.sentAt).toLocaleString('pt-BR')}</p>

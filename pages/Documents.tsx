@@ -75,7 +75,7 @@ const StorageInfoPanel: React.FC<{onClose: () => void}> = ({onClose}) => {
                 href={supabaseSqlUrl} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-primary-700 rounded-md hover:bg-primary-800"
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-secondary-700 rounded-md hover:bg-secondary-800"
               >
                 <ExternalLink size={14} />
                 Abrir Editor SQL do Supabase
@@ -142,7 +142,7 @@ export const Documents: React.FC<DocumentsProps> = ({ documents, onAddDocument, 
                     {canPerformActions && (
                         <button 
                             onClick={() => setIsModalOpen(true)}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800">
                             <Upload size={16} /> Carregar Documento
                         </button>
                     )}
@@ -175,7 +175,7 @@ export const Documents: React.FC<DocumentsProps> = ({ documents, onAddDocument, 
                                         {canPerformActions && (
                                             <button 
                                                 onClick={() => handleDelete(doc)}
-                                                className="p-2 text-gray-500 hover:text-primary-700 dark:text-gray-400 dark:hover:text-primary-500">
+                                                className="p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500">
                                                 <Trash2 size={18} />
                                             </button>
                                         )}

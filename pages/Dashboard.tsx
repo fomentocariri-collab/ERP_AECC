@@ -2,13 +2,13 @@ import React from 'react';
 import { Users, UserCheck, Calendar, DollarSign, UserX, CalendarOff } from 'lucide-react';
 import { Member, Transaction, Event } from '../types';
 
-const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; }> = ({ icon, title, value }) => (
+const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; color: 'primary' | 'secondary' }> = ({ icon, title, value, color }) => (
   <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex items-start justify-between border border-gray-200 dark:border-gray-700">
     <div>
       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
       <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
     </div>
-    <div className="bg-primary-100 dark:bg-primary-900/50 p-3 rounded-full">
+    <div className={`p-3 rounded-full ${color === 'primary' ? 'bg-primary-100 dark:bg-primary-900/50' : 'bg-secondary-100 dark:bg-secondary-900/50'}`}>
       {icon}
     </div>
   </div>
@@ -29,10 +29,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, transactions, eve
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard icon={<Users className="text-primary-700 dark:text-primary-300"/>} title="Total de Membros" value={members.length.toString()} />
-        <StatCard icon={<UserCheck className="text-primary-700 dark:text-primary-300"/>} title="Membros Ativos" value={activeMembers.toString()} />
-        <StatCard icon={<Calendar className="text-primary-700 dark:text-primary-300"/>} title="Próximos Eventos" value={events.length.toString()} />
-        <StatCard icon={<DollarSign className="text-primary-700 dark:text-primary-300"/>} title="Receita do Mês" value={`R$ ${monthlyIncome.toFixed(2)}`} />
+        <StatCard color="secondary" icon={<Users className="text-secondary-700 dark:text-secondary-300"/>} title="Total de Membros" value={members.length.toString()} />
+        <StatCard color="primary" icon={<UserCheck className="text-primary-700 dark:text-primary-300"/>} title="Membros Ativos" value={activeMembers.toString()} />
+        <StatCard color="secondary" icon={<Calendar className="text-secondary-700 dark:text-secondary-300"/>} title="Próximos Eventos" value={events.length.toString()} />
+        <StatCard color="primary" icon={<DollarSign className="text-primary-700 dark:text-primary-300"/>} title="Receita do Mês" value={`R$ ${monthlyIncome.toFixed(2)}`} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -63,7 +63,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, transactions, eve
           <h2 className="text-lg font-semibold mb-4">Próximos Eventos</h2>
           <div className="space-y-4">
             {events.length > 0 ? events.slice(-3).reverse().map(event => (
-                <div key={event.id} className="border-l-4 border-primary-500 pl-4 py-1">
+                <div key={event.id} className="border-l-4 border-secondary-500 pl-4 py-1">
                     <p className="font-semibold text-sm">{event.title}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{event.date} - {event.location}</p>
                 </div>

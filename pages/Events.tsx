@@ -19,7 +19,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onEdit, onDelete, canPerfo
         <button onClick={onEdit} className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300">
           <Edit size={16} />
         </button>
-        <button onClick={onDelete} className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 hover:text-primary-700 dark:text-gray-300 dark:hover:text-primary-500">
+        <button onClick={onDelete} className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-500">
           <Trash2 size={16} />
         </button>
       </div>
@@ -27,7 +27,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onEdit, onDelete, canPerfo
     <div>
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-sm font-medium text-primary-700 dark:text-primary-400">{event.type}</p>
+          <p className="text-sm font-medium text-secondary-700 dark:text-secondary-400">{event.type}</p>
           <h3 className="text-lg font-bold mt-1 pr-16">{event.title}</h3>
         </div>
         <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">{event.date}</span>
@@ -45,7 +45,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onEdit, onDelete, canPerfo
         className={`w-full px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
           isSubscribed
             ? 'bg-green-600 cursor-not-allowed'
-            : 'bg-primary-700 hover:bg-primary-800'
+            : 'bg-secondary-700 hover:bg-secondary-800'
         }`}
       >
         {isSubscribed ? 'Inscrito' : 'Inscrever-se'}
@@ -127,7 +127,7 @@ export const Events: React.FC<EventsProps> = ({ events, onAddEvent, onUpdateEven
           {canPerformActions && (
             <button 
               onClick={handleOpenAddModal}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800">
               <PlusCircle size={16} /> Criar Evento
             </button>
           )}

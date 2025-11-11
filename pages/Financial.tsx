@@ -48,7 +48,7 @@ export const Financial: React.FC<FinancialProps> = ({ transactions, members, onA
             </td>
             {canPerformActions && (
                 <td className="px-6 py-4 text-right">
-                    <button onClick={() => handleDelete(transaction.id)} className="p-2 text-gray-500 hover:text-primary-700 dark:hover:text-primary-500">
+                    <button onClick={() => handleDelete(transaction.id)} className="p-2 text-gray-500 hover:text-red-600 dark:hover:text-red-500">
                         <Trash2 size={16} />
                     </button>
                 </td>
@@ -74,7 +74,7 @@ export const Financial: React.FC<FinancialProps> = ({ transactions, members, onA
                     <h3 className="font-medium">Despesa Total</h3>
                     <p className="text-3xl font-bold">R$ {totalExpense.toFixed(2)}</p>
                 </div>
-                <div className="bg-secondary-100 dark:bg-secondary-900/50 p-6 rounded-xl text-secondary-800 dark:text-secondary-200">
+                <div className="bg-primary-100 dark:bg-primary-900/50 p-6 rounded-xl text-primary-800 dark:text-primary-200">
                     <h3 className="font-medium">Saldo</h3>
                     <p className="text-3xl font-bold">R$ {balance.toFixed(2)}</p>
                 </div>
@@ -90,7 +90,7 @@ export const Financial: React.FC<FinancialProps> = ({ transactions, members, onA
                         {canPerformActions && (
                             <button 
                                 onClick={() => setIsModalOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800">
                                 <PlusCircle size={16} /> Adicionar Transação
                             </button>
                         )}
