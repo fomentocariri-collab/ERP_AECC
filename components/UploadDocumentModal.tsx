@@ -6,13 +6,14 @@ interface UploadDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddDocument: (document: Omit<Document, 'id'|'url'>, file: File) => Promise<void>;
+  onStorageError?: () => void;
 }
 
 const documentTypes: DocumentType[] = ['Statute', 'Meeting Minutes', 'Report', 'Other'];
 const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500";
 
 
-export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen, onClose, onAddDocument }) => {
+export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen, onClose, onAddDocument, onStorageError }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [docType, setDocType] = useState<DocumentType>('Report');
   const [error, setError] = useState('');
@@ -62,8 +63,15 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({ isOpen
     try {
         await onAddDocument(newDocumentData, selectedFile);
         onClose();
-    } catch (e) {
-        console.error("Failed to upload document", e)
+    } catch (e: any) {
+        console.error("Failed to upload document", e);
+        // The error is re-thrown from App.tsx, check for its context property
+        if (e.context === 'storage') {
+            onClose(); // Close the modal
+            onStorageError?.(); // Then trigger the panel on the page behind it.
+        } else {
+            onClose(); // Close for other errors, as the toast is enough.
+        }
     } finally {
         setIsSaving(false);
     }
