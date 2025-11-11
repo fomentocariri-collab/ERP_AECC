@@ -167,42 +167,34 @@ const App: React.FC = () => {
   };
 
   const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
-    // FIX: Wrap Supabase call in an async function to return a native Promise.
-    await handleCrudOperation('adicionar membro', async () => supabase.from('members').insert([camelToSnake(newMemberData)]), true);
+    await handleCrudOperation('adicionar membro', async () => supabase.from('members').insert([camelToSnake(newMemberData)]).select().single(), true);
   };
 
   const handleUpdateMember = async (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => {
-    // FIX: Wrap Supabase call in an async function to return a native Promise.
-    await handleCrudOperation('atualizar membro', async () => supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId), true);
+    await handleCrudOperation('atualizar membro', async () => supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId).select().single(), true);
   };
   
   const handleDeleteMember = async (memberId: string) => {
-    // FIX: Wrap Supabase call in an async function to return a native Promise.
     await handleCrudOperation('excluir membro', async () => supabase.from('members').delete().eq('id', memberId));
   };
 
   const handleAddTransaction = async (newTransactionData: Omit<Transaction, 'id'>) => {
-    // FIX: Wrap Supabase call in an async function to return a native Promise.
-    await handleCrudOperation('adicionar transação', async () => supabase.from('transactions').insert([camelToSnake(newTransactionData)]), true);
+    await handleCrudOperation('adicionar transação', async () => supabase.from('transactions').insert([camelToSnake(newTransactionData)]).select().single(), true);
   };
 
   const handleDeleteTransaction = async (transactionId: string) => {
-    // FIX: Wrap Supabase call in an async function to return a native Promise.
     await handleCrudOperation('excluir transação', async () => supabase.from('transactions').delete().eq('id', transactionId));
   };
   
   const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
-    // FIX: Wrap Supabase call in an async function to return a native Promise.
-    await handleCrudOperation('adicionar evento', async () => supabase.from('events').insert([camelToSnake(newEventData)]), true);
+    await handleCrudOperation('adicionar evento', async () => supabase.from('events').insert([camelToSnake(newEventData)]).select().single(), true);
   };
 
   const handleUpdateEvent = async (eventId: string, updatedData: Omit<Event, 'id'>) => {
-    // FIX: Wrap Supabase call in an async function to return a native Promise.
-    await handleCrudOperation('atualizar evento', async () => supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId), true);
+    await handleCrudOperation('atualizar evento', async () => supabase.from('events').update(camelToSnake(updatedData)).eq('id', eventId).select().single(), true);
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-    // FIX: Wrap Supabase call in an async function to return a native Promise.
     await handleCrudOperation('excluir evento', async () => supabase.from('events').delete().eq('id', eventId));
   };
 
@@ -225,8 +217,7 @@ const App: React.FC = () => {
       const dbRecord = { ...camelToSnake(docData), url: urlData.publicUrl };
       await handleCrudOperation(
           'adicionar documento',
-          // FIX: Wrap Supabase call in an async function to return a native Promise.
-          async () => supabase.from('documents').insert([dbRecord]),
+          async () => supabase.from('documents').insert([dbRecord]).select().single(),
           true
       );
     } catch (error: any) {
@@ -253,13 +244,11 @@ const App: React.FC = () => {
       }
     } catch(e) { console.error("Could not parse URL to delete from storage:", doc.url, e); }
     
-    // FIX: Wrap Supabase call in an async function to return a native Promise.
     await handleCrudOperation('excluir documento', async () => supabase.from('documents').delete().eq('id', doc.id));
   };
   
   const handleAddCommunication = async (newCommunicationData: Omit<Communication, 'id'>) => {
-    // FIX: Wrap Supabase call in an async function to return a native Promise.
-    await handleCrudOperation('enviar comunicação', async () => supabase.from('communications').insert([camelToSnake(newCommunicationData)]), true);
+    await handleCrudOperation('enviar comunicação', async () => supabase.from('communications').insert([camelToSnake(newCommunicationData)]).select().single(), true);
   };
 
   const renderPage = () => {
