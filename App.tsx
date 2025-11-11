@@ -11,7 +11,7 @@ import { Settings } from './pages/Settings';
 import { Page, Member, Transaction, Event, Document, Communication } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
-import { supabase } from './src/lib/supabaseClient.js';
+import { supabase } from './supabaseClient';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 // Toast Notification Component
@@ -143,7 +143,7 @@ const App: React.FC = () => {
   ) => {
     try {
       const { error } = await operation();
-      if (error) throw error; // Centralize error handling in the catch block
+      if (error) throw error; 
 
       showToast(`${action.charAt(0).toUpperCase() + action.slice(1)} com sucesso!`);
       await fetchData();
@@ -154,13 +154,12 @@ const App: React.FC = () => {
 
       if (isAuthError) {
         showToast('Sua sessão expirou. Você será desconectado.', 'error');
-        setTimeout(() => logout(), 1500); // Give user time to see toast before reload
+        setTimeout(() => logout(), 1500); 
       } else {
         showToast(generateErrorMessage(action.toLowerCase(), error), 'error');
       }
 
       if (throwOnError) {
-        // Re-throw the original error so UI components (like modals) can react to the failure.
         throw error;
       }
     }
@@ -202,18 +201,15 @@ const App: React.FC = () => {
     try {
       const filePath = `${currentUser!.id}/${new Date().getTime()}-${file.name}`;
       
-      // Step 1: Upload file and check for errors manually, as it's a two-step process.
       const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      // Step 2: Get Public URL
       const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
       if (!urlData.publicUrl) {
-          await supabase.storage.from('documents').remove([filePath]); // Cleanup
+          await supabase.storage.from('documents').remove([filePath]);
           throw new Error("Não foi possível obter a URL pública do arquivo.");
       }
 
-      // Step 3: Insert DB record using the robust handler
       const dbRecord = { ...camelToSnake(docData), url: urlData.publicUrl };
       await handleCrudOperation(
           'adicionar documento',
@@ -221,7 +217,6 @@ const App: React.FC = () => {
           true
       );
     } catch (error: any) {
-        // Catch errors from any step and use the centralized handler's logic
         console.error(`Error during 'adicionar documento':`, error);
         const isAuthError = error.code === 'PGRST301' || error.status === 401 || (error.message && (error.message.includes('JWT') || error.message.includes('token')));
         if (isAuthError) {
@@ -230,7 +225,7 @@ const App: React.FC = () => {
         } else {
             showToast(generateErrorMessage('adicionar documento', error), 'error');
         }
-        throw error; // Re-throw so modal knows it failed
+        throw error;
     }
   };
 

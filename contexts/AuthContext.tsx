@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { User, UserRole } from '../types';
-import { supabase } from '../src/lib/supabaseClient.js';
+// Fix: Corrected the import path for the supabase client.
+import { supabase } from '../supabaseClient';
 import type { AuthChangeEvent, User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
