@@ -5,37 +5,34 @@ import { UploadDocumentModal } from '../components/UploadDocumentModal';
 import { supabaseProjectId } from '../supabaseClient';
 
 
-const STORAGE_POLICIES_SCRIPT = `-- Estas políticas garantem que os usuários possam gerenciar arquivos em suas próprias pastas.
+const STORAGE_POLICIES_SCRIPT = `-- SCRIPT DE POLÍTICAS PARA O BUCKET 'documents'
+-- Garante que os usuários possam gerenciar arquivos em suas próprias pastas.
 
--- 1. Remove políticas antigas para evitar conflitos (Recomendado)
+-- ETAPA 1: Remova políticas antigas para uma instalação limpa (Recomendado)
 DROP POLICY IF EXISTS "Allow public read access" ON storage.objects;
 DROP POLICY IF EXISTS "Allow authenticated uploads" ON storage.objects;
 DROP POLICY IF EXISTS "Allow authenticated updates" ON storage.objects;
 DROP POLICY IF EXISTS "Allow authenticated deletes" ON storage.objects;
 
--- 2. Política para VISUALIZAR (SELECT)
--- Permite que qualquer pessoa (pública) veja os arquivos no bucket 'documents'.
--- Necessário para que as URLs públicas geradas pelo app funcionem.
+-- ETAPA 2: Crie as novas políticas de acesso
+-- Política para VISUALIZAR (SELECT): Permite que qualquer pessoa veja os arquivos.
 CREATE POLICY "Allow public read access"
 ON storage.objects FOR SELECT
 USING ( bucket_id = 'documents' );
 
--- 3. Política para ENVIAR (INSERT)
--- Permite que um usuário AUTENTICADO envie arquivos para sua própria pasta.
+-- Política para ENVIAR (INSERT): Permite que um usuário AUTENTICADO envie arquivos para sua própria pasta.
 CREATE POLICY "Allow authenticated uploads"
 ON storage.objects FOR INSERT
 TO authenticated
 WITH CHECK ( bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text );
 
--- 4. Política para ATUALIZAR (UPDATE)
--- Permite que um usuário AUTENTICADO atualize arquivos em sua própria pasta.
+-- Política para ATUALIZAR (UPDATE): Permite que um usuário AUTENTICADO atualize arquivos em sua própria pasta.
 CREATE POLICY "Allow authenticated updates"
 ON storage.objects FOR UPDATE
 TO authenticated
 USING ( bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text );
 
--- 5. Política para EXCLUIR (DELETE)
--- Permite que um usuário AUTENTICADO exclua arquivos de sua própria pasta.
+-- Política para EXCLUIR (DELETE): Permite que um usuário AUTENTICADO exclua arquivos de sua própria pasta.
 CREATE POLICY "Allow authenticated deletes"
 ON storage.objects FOR DELETE
 TO authenticated
@@ -60,8 +57,13 @@ const StorageInfoPanel: React.FC<{onClose: () => void}> = ({onClose}) => {
         </div>
         <div className="ml-3">
           <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">Ação Necessária: Corrija as Permissões do Storage</p>
-          <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
-            <p>O upload falhou porque o Storage do Supabase não tem permissões para aceitar arquivos. Para corrigir, copie o script SQL abaixo e execute-o no seu projeto.</p>
+          <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300 space-y-2">
+            <p>O upload falhou porque o Storage do Supabase não tem permissões. Para corrigir, siga estes passos no seu painel Supabase:</p>
+            <ol className="list-decimal list-inside space-y-1 pl-2">
+                <li>Vá para a seção <strong>Storage</strong>.</li>
+                <li>Verifique se existe um "Bucket" chamado <code className="text-xs font-bold bg-yellow-200 dark:bg-yellow-800/50 p-1 rounded">documents</code>. Se não, crie um. <strong>Importante:</strong> Marque a opção "Public bucket".</li>
+                <li>Vá para o <strong>SQL Editor</strong>, cole e execute o script abaixo para aplicar as permissões.</li>
+            </ol>
             <div className="mt-2 p-2 relative bg-gray-800 dark:bg-gray-900 text-white rounded-md font-mono text-xs overflow-x-auto">
               <pre><code>{STORAGE_POLICIES_SCRIPT}</code></pre>
               <button onClick={handleCopy} className="absolute top-2 right-2 p-1.5 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition-all">

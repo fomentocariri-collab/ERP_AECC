@@ -4,7 +4,11 @@ import { LogIn, Loader2, AlertTriangle, Clipboard, Check, ExternalLink } from 'l
 import { LOGO_BASE64 } from '../constants';
 import { supabaseProjectId } from '../supabaseClient';
 
-const RLS_FIX_SCRIPT = `-- ETAPA 1: Remova políticas antigas e recursivas.
+const RLS_FIX_SCRIPT = `-- ETAPA 1: Habilite a "Row Level Security" (RLS) para a tabela de perfis.
+-- Se já estiver habilitada, este comando não fará nada, mas é essencial garantir.
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- ETAPA 2: Remova políticas antigas e recursivas para evitar conflitos.
 DROP POLICY IF EXISTS "Profiles: Super Admin full access" ON public.profiles;
 DROP POLICY IF EXISTS "Profiles: Financeiro view only" ON public.profiles;
 DROP POLICY IF EXISTS "Profiles: Associado view only" ON public.profiles;
@@ -12,20 +16,21 @@ DROP POLICY IF EXISTS "Authenticated users can view their own profile" ON public
 DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Super Admins can view all profiles" ON public.profiles;
 
--- ETAPA 2: Crie a política ESSENCIAL que permite a cada usuário ler SEU PRÓPRIO perfil.
+-- ETAPA 3: Crie a política ESSENCIAL que permite a cada usuário ler SEU PRÓPRIO perfil.
+-- Esta é a política mais importante para o login funcionar.
 CREATE POLICY "Authenticated users can view their own profile"
 ON public.profiles FOR SELECT
 TO authenticated
 USING (auth.uid() = id);
 
--- ETAPA 3: Permita que os usuários atualizem seus próprios perfis.
+-- ETAPA 4: Permita que os usuários atualizem seus próprios perfis.
 CREATE POLICY "Users can update their own profile"
 ON public.profiles FOR UPDATE
 TO authenticated
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
--- ETAPA 4: (Opcional) Permita que 'Super Admins' vejam TODOS os perfis.
+-- ETAPA 5: (Opcional) Permita que 'Super Admins' vejam TODOS os perfis.
 CREATE POLICY "Super Admins can view all profiles"
 ON public.profiles FOR SELECT
 TO authenticated
@@ -49,8 +54,13 @@ const RLSInfoPanel: React.FC = () => {
         </div>
         <div className="ml-3">
           <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">Ação Necessária: Corrija as Permissões do Banco de Dados</p>
-          <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
-            <p>O login falhou devido a um erro de permissão (RLS) no Supabase. Para corrigir, copie o script abaixo e execute-o no Editor SQL do seu projeto.</p>
+          <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300 space-y-2">
+            <p>O login falhou devido a um erro de permissão (RLS). Para corrigir, siga estes passos no seu painel Supabase:</p>
+            <ol className="list-decimal list-inside space-y-1 pl-2">
+              <li>Vá para <strong>"Database"</strong> &rarr; <strong>"Tables"</strong> e selecione a tabela <code className="text-xs font-bold bg-yellow-200 dark:bg-yellow-800/50 p-1 rounded">profiles</code>.</li>
+              <li>Na aba <strong>"Table Settings"</strong>, certifique-se de que a opção <strong>"Enable Row Level Security (RLS)"</strong> está <span className="font-bold">HABILITADA</span>.</li>
+              <li>Vá para o <strong>"SQL Editor"</strong>, cole e execute o script abaixo para definir as permissões corretas.</li>
+            </ol>
             <div className="mt-2 p-2 relative bg-gray-800 dark:bg-gray-900 text-white rounded-md font-mono text-xs overflow-x-auto">
               <pre><code>{RLS_FIX_SCRIPT}</code></pre>
               <button onClick={handleCopy} className="absolute top-2 right-2 p-1.5 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition-all">
