@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+ import React, { useState } from 'react';
 import { Page, User } from '../types';
 import { Home, Users, DollarSign, Calendar, FileText, Send, Settings, ChevronFirst, ChevronLast, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-// FIX: The constant is named LOGO_AECC_BASE64. Using an alias for consistency.
-import { LOGO_AECC_BASE64 as LOGO_BASE64 } from '../constants';
+import { LOGO_AECC_BASE64, ASSOCIATION_ACRONYM } from '../constants';
 
 const NAV_ITEMS = [
   { name: 'Dashboard', icon: <Home size={20}/> },
@@ -36,14 +35,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
   return (
     <aside className="h-screen sticky top-0">
       <nav className="h-full flex flex-col bg-white dark:bg-gray-800 border-r dark:border-gray-700 shadow-sm">
-        <div className="p-4 pb-2 flex justify-between items-center">
-          {LOGO_BASE64 !== "[PLACEHOLDER_LOGO]" ? (
-            <img src={LOGO_BASE64} alt="Logo" className={`overflow-hidden transition-all ${expanded ? 'w-32' : 'w-0'}`} />
-          ) : (
-            <div className={`overflow-hidden transition-all font-bold text-lg ${expanded ? 'w-32' : 'w-0'}`}>Associação</div>
-          )}
-          <button onClick={() => setExpanded(curr => !curr)} className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
-            {expanded ? <ChevronFirst /> : <ChevronLast />}
+        <div className="p-4 pb-2 flex items-center">
+          <img src={LOGO_AECC_BASE64} alt="Logo AECC" className={`h-8 transition-all duration-300 ${expanded ? 'w-auto' : 'w-0'}`} />
+          <span className={`font-bold text-lg ml-3 text-gray-800 dark:text-gray-200 overflow-hidden transition-all whitespace-nowrap duration-200 ${ expanded ? 'opacity-100' : 'opacity-0 w-0' }`} >
+              {ASSOCIATION_ACRONYM}
+          </span>
+          <button onClick={() => setExpanded(curr => !curr)} className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 ml-auto">
+              {expanded ? <ChevronFirst /> : <ChevronLast />}
           </button>
         </div>
 
