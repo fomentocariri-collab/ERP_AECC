@@ -1,9 +1,39 @@
 // constants.tsx
+import React from 'react';
+
 export const PROJECT_NAME = "Associação dos Empreendedores Criativos do Cariri";
 export const ASSOCIATION_ACRONYM = "AECC";
 export const ERP_NAME = "ERP_AECC";
 export const VERSION = "1.0.2";
 
-// Logo da AECC em Base64 (Otimizada, ~600 bytes)
-// Esta versão é significativamente menor para garantir o carregamento rápido e correto.
-export const LOGO_AECC_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAARJSURBVHja7VtdqCVRFL7vLpQiCIkiqIsgK4ouwg57s4uwC/sgu4guwi4LiIuwCyqiiKAP2EXZoYH9ILuIjgh+iI4gIy8vj/v/DP3nLn3zF0z93B+8IHPufece86555x7zhEcYyONtJFG2khyScAUbVlCN35QJ4Ac6AIGcIMbgC/4AVf4DqZwGkfgVdCDp4APeIB3/AxH4BfOwxv4BRPTYljSgCNoCl+BGbiCmyoA3+GzY+B2eBoWw4I+AcZwFyzBNPyBn1sAnODzFmBXuBoW4wK+A5vhpRbgLtiCNeFcWHBeP/D7iA0b4aVcYj1sA/eK/eBWuBjWdAqYwA6YoRC4BZ7FNXAPfC2mP4KnsEcwGxbCFw0A2+G7XoDOcBDOxBRwBxzHAmzHCHwJvsUX4WAs2Aob4aVeYJvwwK54GNZiFvAIPC4XmAT/hTfwXSyGFZ0E9sI3hQCt4XEs2AIfcK05YD6sA8+JBTz/wJtwP7wN38bK+A7+iAV4E/bDs3hZCTANfsJzeBf6wT0xAhzC83gTVsIieBJ2wtP4E3bDs1gJS+BX2Alv4wPYD++AF/A9/B+q/D/4H/g4/hM/wj/A1/Bv+AMsA3tJCRD4C7bCE3gTVsLz+B32wnP4CnbC83gdtsJTeBO2wnP4HXbC03gTtsJz+B12wtP4EyRwA3zGAmzHCFwC3+Kz+BgWYgUcAcdxgZ1wgS78oE4AOdAFDOAGNwBf8AVu8BtM4TTOwIugB08BH/AA7/gZjsAvnIdv8AsmpscSSIIuGgC2w3e9AM1wEE7EFHAFHMcCbMcK/Aq+xZfxYSwYC7bAkybALPCf+A9+hhV6Ab6Ea+F5fBQ3w4I+Ad7HZuFrE+A++I4V8CjsjpfxYSwYi7XwHHyIX4Wd8DJehpWwBL4bNsI/YSU8j99hJzyN32AnPI3fYSc8jd9hJzyN32EnPI3fYSc8jd9hJzyN32EnPI3fYSdgFjjABHCADfAGfAIfwCfAEXAFXACdwCfwCvgDvAGfwDfwCbgC7oCP4TP4DHwD3wAXwCVwAbwDfoD/bYBDYBfYAdbCGrACpoAPYA/YAbagCmwFm8Ae2Ao2gS3gDtgKNoEtsBVsAltgK9gEtsBWsAmsgA/gF/gL3oD/wV/wH/wd/wb/wR/wg/wBfoF/4S9wDxyGA/AcfAwfxGfgY/gYjsA/4UP4ABfgf/he/hE+hPfhL2EJfAvfwH9hpbwL+2ArfBFfwDfwPfyL6r8G/Ib/wa/wZ/xb/BP/hN/hP7gDPsE/4D/4H/4EPoD/wT+4CD/Ef+B/+Fv8F1+F/+Of8R94F9bCUtgCNoEtYAvYAvYAW8AWsAXsAbYAW8AWsAVsAbYANsBWsAVsAbYANsBWsAVsAbYANsBWsAW8Bd/Av/gW/oV/4R/4J/4G/8A/8Qd8A3/C3+B/+D/8CP+Dn+FP+BP+gH/gF3gPnoD/+Afegb/hz/gL/g3/g7/jb/gX/g//hp/hT/gH/oF3wGPoAH+C/+Bv+B/+iL/gX/g//hn/gX/gHfgEnoDn8Qc8B8/BG+A5eBa+Aceg43AIjsNReAw6BafgMGwEDkDDsA04AgdhCjgCjuECzsARuAUuwdX4CFzCq3ETuATXwRvgElwHb4JLcBW+AS7BdfAmcAmugzfBZXA9fARcButwI7gMV+NGcAWuhzfBZbga3gSXYGt4E1yCLeGN4BJshjeBJbAV3gSXwCp4E1wCq+FN4ApYjQvgClgNi+EKWI0L4ApYDYvhClgNi+EKWI2L4QpYDYvhClgNi+EKWI0L4ApYDYvhCtoYaaSNP81/AY3jSy0bM1JAAAAAAElFTSuQmCC";
+// Logo da AECC como um componente SVG em React.
+// Esta abordagem é mais robusta, leve e garante que a imagem sempre será renderizada corretamente.
+export const LogoAECC: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 100 100"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-label="Logo da AECC"
+  >
+    <defs>
+        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            {/* Corresponde ao `secondary-700` e `secondary-500` do tema */}
+            <stop offset="0%" style={{ stopColor: '#2d5e4d' }} /> 
+            <stop offset="100%" style={{ stopColor: '#43846c' }} />
+        </linearGradient>
+    </defs>
+    <rect width="100" height="100" rx="20" fill="url(#logoGradient)" />
+    <text
+      x="50"
+      y="55"
+      fontFamily="Inter, sans-serif"
+      fontSize="38"
+      fontWeight="bold"
+      fill="white"
+      textAnchor="middle"
+      dominantBaseline="middle"
+    >
+      AECC
+    </text>
+  </svg>
+);
