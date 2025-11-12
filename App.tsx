@@ -88,6 +88,9 @@ const App: React.FC = () => {
     if (action.includes('storage') || action.includes('arquivo')) {
         return `${defaultMessage} Verifique as Políticas de Acesso (Policies) do Storage no Supabase.`;
     }
+    if (action.includes('enviar e-mail')) {
+        return `${defaultMessage} Verifique se a Edge Function 'send-email' foi implantada e se a chave da API Resend está configurada corretamente.`;
+    }
     return `${defaultMessage} Verifique as permissões de acesso (RLS) no Supabase.`;
   };
 
@@ -262,8 +265,34 @@ const App: React.FC = () => {
     await handleCrudOperation('excluir documento', async () => supabase.from('documents').delete().eq('id', doc.id));
   };
   
-  const handleAddCommunication = async (newCommunicationData: Omit<Communication, 'id'>) => {
-    await handleCrudOperation('enviar comunicação', async () => supabase.from('communications').insert([camelToSnake(newCommunicationData)]).select().single(), true);
+  const handleSendCommunication = async (
+    communicationData: Omit<Communication, 'id'>,
+    recipientEmails: string[]
+  ) => {
+    // 1. Save communication to history
+    await handleCrudOperation('salvar comunicação', async () =>
+      supabase.from('communications').insert([camelToSnake(communicationData)]).select().single()
+    , true);
+
+    // 2. Invoke Edge Function to send emails
+    if (recipientEmails.length > 0) {
+      try {
+        const { error } = await supabase.functions.invoke('send-email', {
+          body: {
+            recipients: recipientEmails,
+            subject: communicationData.subject,
+            message: communicationData.message
+          },
+        });
+
+        if (error) throw error;
+        showToast('E-mails enviados para a fila de disparo!');
+      } catch (error: any) {
+        console.error("Error invoking send-email function:", error);
+        showToast(generateErrorMessage('enviar e-mail', error), 'error');
+        // Do not re-throw, as the communication was already saved.
+      }
+    }
   };
 
   const renderPage = () => {
@@ -280,7 +309,7 @@ const App: React.FC = () => {
       case 'Documents':
         return <Documents documents={documents} onAddDocument={handleAddDocument} onDeleteDocument={handleDeleteDocument} userRole={currentUser.role} />;
       case 'Communications':
-        return <Communications members={members} communications={communications} onAddCommunication={handleAddCommunication} userRole={currentUser.role} />;
+        return <Communications members={members} communications={communications} onSendCommunication={handleSendCommunication} userRole={currentUser.role} />;
       case 'Settings':
         return <Settings currentUser={currentUser} users={users} onUpdateUser={updateUser} onAddUser={addUser} onDeleteUser={deleteUser} showToast={showToast} />;
       default:

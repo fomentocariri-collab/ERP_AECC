@@ -1,8 +1,9 @@
- import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../supabaseClient';
-// FIX: AuthChangeEvent is not exported in older Supabase client versions. Relying on type inference for the event argument.
-import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+// FIX: In older versions of Supabase JS v2, the User type was exported as AuthUser.
+// This change aligns with older v2 versions and resolves type errors.
+import type { AuthUser as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -30,8 +31,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .select('id, name, email, role, avatar_url')
         .eq('id', supabaseUser.id)
         .single();
-      if (error) throw error;
-      if (!profile) return null;
+
+      // If there's an error OR if no profile is found for an authenticated user,
+      // it's treated as a potential RLS issue.
+      if (error || !profile) {
+          // Force a specific error code that we can reliably catch.
+          throw { code: 'PGRST116', message: 'Profile not found or RLS issue' };
+      }
 
       return {
         id: profile.id, email: profile.email, name: profile.name,
@@ -39,6 +45,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
     } catch (error: any) {
         console.error("Error fetching user profile:", error.message);
+        // This specific error code indicates a profile was not found, which we now also trigger manually.
+        if (error.code === 'PGRST116') {
+            throw new Error("RLS_RECURSION");
+        }
         throw error;
     }
   }, []);
@@ -66,29 +76,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     setLoading(true);
-    // FIX: Correctly handle the subscription object from onAuthStateChange for older client versions.
-    const { data: authListener } = supabase.auth.onAuthStateChange(
+    // FIX: Correctly handle the subscription object from onAuthStateChange for Supabase JS v2.
+    // Older versions of Supabase JS v2 returned { data: subscription } instead of { data: { subscription } }.
+    const { data: subscription } = supabase.auth.onAuthStateChange(
       async (_event, session: Session | null) => {
-        if (!session) {
-          setCurrentUser(null);
-          setLoading(false);
-          return;
-        }
-        
         try {
-            const userProfile = await fetchUserProfile(session.user);
-            setCurrentUser(prevUser => 
-                JSON.stringify(prevUser) !== JSON.stringify(userProfile) ? userProfile : prevUser
-            );
-        } catch(e) {
-            console.error("Failed to fetch user profile on auth change, but session is valid. User will not be logged out.", e);
+          const userProfile = await fetchUserProfile(session?.user ?? null);
+          setCurrentUser(userProfile);
+        } catch (error) {
+          console.error("Auth state change error:", error);
+          // If profile fetch fails on session change, log out the user to ensure a clean state.
+          setCurrentUser(null);
+          await supabase.auth.signOut();
         } finally {
-            setLoading(false);
+          setLoading(false);
         }
       }
     );
+    
     return () => {
-      authListener?.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, [fetchUserProfile]);
 
@@ -99,7 +106,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [currentUser, fetchUsers]);
 
   const login = useCallback(async (email: string, pass: string) => {
-    // FIX: Replaced v2 'signInWithPassword' with v1 'signIn' and adjusted response handling.
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw new Error("Usuário ou senha inválidos.");
     if (!data.user) throw new Error("Login falhou, usuário não encontrado.");
@@ -107,25 +113,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
         const userProfile = await fetchUserProfile(data.user);
         if (!userProfile) {
-          throw new Error("Login OK, mas perfil não encontrado.");
+          // This path should ideally not be taken due to the new fetchUserProfile logic, but serves as a fallback.
+          throw new Error("Perfil de usuário não encontrado após o login.");
         }
+        // The onAuthStateChange will handle setting the user, but we can do it here for faster UI response.
+        setCurrentUser(userProfile);
     } catch (error: any) {
-        // FIX: The signOut method should exist; if not, there is a deeper problem with the Supabase client instance.
         await supabase.auth.signOut();
-        if (error.code === 'PGRST116' || (error.details && error.details.includes('relation "profiles" does not exist'))) {
-             throw new Error("RLS_RECURSION");
+        if (error.message === "RLS_RECURSION") {
+             throw new Error(error.message); // Propagate the specific error for the UI to handle.
         }
-        throw new Error(`Login OK, mas perfil não encontrado. Verifique a RLS (Row Level Security) da tabela 'profiles' no Supabase.`);
+        throw new Error(`Login OK, mas perfil não encontrado. Verifique a RLS (Row Level Security) da tabela 'profiles'.`);
     }
   }, [fetchUserProfile]);
 
   const logout = useCallback(async () => {
-    // FIX: The signOut method should exist.
     await supabase.auth.signOut();
-    localStorage.clear();
-    sessionStorage.clear();
-    setCurrentUser(null); 
-    window.location.href = "/";
+    setCurrentUser(null);
+    setUsers([]);
   }, []);
 
   const addUser = useCallback(async (userData: Omit<User, 'id' | 'avatarUrl' | 'role'> & {password: string; role: UserRole}) => {
@@ -152,14 +157,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      const { error } = await supabase.from('profiles').update(snakeCaseData).eq('id', userId);
      if (error) throw new Error(`Erro ao atualizar usuário: ${error.message}`);
      
-     await fetchUsers();
-     
      if (currentUser && currentUser.id === userId) {
-        // FIX: Replaced v2 'getSession' with v1 'session' which is synchronous.
         const { data: { session } } = await supabase.auth.getSession();
         const updatedProfile = await fetchUserProfile(session?.user ?? null);
         setCurrentUser(updatedProfile);
      }
+     await fetchUsers();
+
   }, [currentUser, fetchUserProfile, fetchUsers]);
   
   const deleteUser = useCallback(async (userId: string) => {

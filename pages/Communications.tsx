@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Send, Clock, MessageSquareX } from 'lucide-react';
 import { Communication, Member, UserRole } from '../types';
 
@@ -7,17 +7,45 @@ const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focu
 interface CommunicationsProps {
     members: Member[];
     communications: Communication[];
-    onAddCommunication: (communication: Omit<Communication, 'id'>) => Promise<void>;
+    onSendCommunication: (communication: Omit<Communication, 'id'>, recipientEmails: string[]) => Promise<void>;
     userRole: UserRole;
 }
 
-export const Communications: React.FC<CommunicationsProps> = ({ members, communications, onAddCommunication, userRole }) => {
-    const [recipient, setRecipient] = useState('all');
+export const Communications: React.FC<CommunicationsProps> = ({ members, communications, onSendCommunication, userRole }) => {
+    const [recipientSelection, setRecipientSelection] = useState('all');
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
+    const [isSending, setIsSending] = useState(false);
 
     const canPerformActions = userRole === 'Super Admin' || userRole === 'Financeiro';
+
+    const { recipientEmails, recipientDisplayText } = useMemo(() => {
+        let emails: string[] = [];
+        let display = 'Todos os Membros';
+
+        switch (recipientSelection) {
+            case 'all':
+                emails = members.map(m => m.email);
+                display = 'Todos os Membros';
+                break;
+            case 'active':
+                emails = members.filter(m => m.status === 'Active').map(m => m.email);
+                display = 'Membros Ativos';
+                break;
+            case 'inactive':
+                emails = members.filter(m => m.status === 'Inactive').map(m => m.email);
+                display = 'Membros Inativos';
+                break;
+            default: // Individual member
+                const selectedMember = members.find(m => m.id === recipientSelection);
+                if (selectedMember) {
+                    emails = [selectedMember.email];
+                    display = selectedMember.name;
+                }
+                break;
+        }
+        return { recipientEmails: emails.filter(Boolean), recipientDisplayText: display };
+    }, [recipientSelection, members]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,33 +53,29 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
             alert('Assunto e Mensagem são obrigatórios.');
             return;
         }
-        setIsSaving(true);
-
-        let recipientText = 'Todos os Membros';
-        if (recipient === 'active') {
-            recipientText = 'Membros Ativos';
-        } else if (recipient === 'inactive') {
-            recipientText = 'Membros Inativos';
-        } else if (recipient !== 'all') {
-            const selectedMember = members.find(m => m.id === recipient);
-            recipientText = selectedMember ? selectedMember.name : 'Desconhecido';
+        if (recipientEmails.length === 0) {
+            alert('Nenhum destinatário encontrado para a seleção atual.');
+            return;
         }
 
+        setIsSending(true);
+
         try {
-            await onAddCommunication({
+            await onSendCommunication({
                 subject,
                 message,
-                recipients: recipientText,
+                recipients: recipientDisplayText,
                 sentAt: new Date().toISOString()
-            });
+            }, recipientEmails);
+            
             // Reset form on success
             setSubject('');
             setMessage('');
-            setRecipient('all');
+            setRecipientSelection('all');
         } catch (error) {
             // Error is handled by the parent toast.
         } finally {
-            setIsSaving(false);
+            setIsSending(false);
         }
     };
 
@@ -67,14 +91,14 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
                             <select 
                                 id="recipient" 
                                 name="recipient" 
-                                value={recipient}
-                                onChange={(e) => setRecipient(e.target.value)}
+                                value={recipientSelection}
+                                onChange={(e) => setRecipientSelection(e.target.value)}
                                 className={INPUT_CLASS}
-                                disabled={isSaving}
+                                disabled={isSending}
                             >
-                                <option value="all">Todos os Membros</option>
-                                <option value="active">Membros Ativos</option>
-                                <option value="inactive">Membros Inativos</option>
+                                <option value="all">Todos os Membros ({members.length})</option>
+                                <option value="active">Membros Ativos ({members.filter(m => m.status === 'Active').length})</option>
+                                <option value="inactive">Membros Inativos ({members.filter(m => m.status === 'Inactive').length})</option>
                                 <optgroup label="Membros Individuais">
                                     {members.map(member => (
                                         <option key={member.id} value={member.id}>{member.name}</option>
@@ -91,7 +115,7 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
                                 value={subject}
                                 onChange={(e) => setSubject(e.target.value)}
                                 className={INPUT_CLASS} 
-                                disabled={isSaving}
+                                disabled={isSending}
                             />
                         </div>
                         <div>
@@ -103,12 +127,13 @@ export const Communications: React.FC<CommunicationsProps> = ({ members, communi
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                                 className={INPUT_CLASS}
-                                disabled={isSaving}
+                                placeholder="A mensagem será enviada por e-mail para os destinatários selecionados."
+                                disabled={isSending}
                             ></textarea>
                         </div>
                         <div className="flex justify-end">
-                            <button type="submit" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800 disabled:bg-secondary-400 disabled:cursor-wait" disabled={isSaving}>
-                                <Send size={16} /> {isSaving ? 'Enviando...' : 'Enviar Mensagem'}
+                            <button type="submit" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800 disabled:bg-secondary-400 disabled:cursor-wait" disabled={isSending}>
+                                <Send size={16} /> {isSending ? 'Enviando...' : 'Enviar Mensagem'}
                             </button>
                         </div>
                     </form>
