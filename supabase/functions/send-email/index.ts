@@ -1,35 +1,41 @@
-// FIX: Updated Supabase Edge Function type reference to use a stable URL from esm.sh, which correctly provides Deno's global types and resolves 'env' property errors.
+// FIX: Replaced JSR import with a more compatible triple-slash directive to correctly load Deno runtime types, resolving errors with 'Deno.serve' and 'Deno.env'.
 /// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Estes valores devem ser configurados nos "Secrets" do seu projeto Supabase.
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-const EMAIL_FROM = Deno.env.get('EMAIL_FROM') || 'onboarding@resend.dev';
-
-
-serve(async (req) => {
-  // Trata a requisição pre-flight do CORS
+Deno.serve(async (req) => {
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    // Securely get secrets from the Supabase environment
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+    const EMAIL_FROM = Deno.env.get('EMAIL_FROM');
+    const PROJECT_NAME = Deno.env.get('PROJECT_NAME'); 
+
+    // Robust validation for all required secrets
     if (!RESEND_API_KEY) {
-        throw new Error("A chave da API Resend (RESEND_API_KEY) não está configurada nos Segredos (Secrets) da Edge Function.");
+        throw new Error("Configuration incomplete: The RESEND_API_KEY secret was not found.");
+    }
+    if (!EMAIL_FROM) {
+        throw new Error("Configuration incomplete: The EMAIL_FROM secret (sender's email) was not found.");
+    }
+    if (!PROJECT_NAME) {
+        throw new Error("Configuration incomplete: The PROJECT_NAME secret (association's name) was not found.");
     }
 
     const { recipients, subject, message } = await req.json()
 
     if (!recipients || !Array.isArray(recipients) || recipients.length === 0 || !subject || !message) {
-      throw new Error("Campos obrigatórios ausentes: 'recipients' (deve ser um array), 'subject', e 'message'.")
+      throw new Error("Missing required fields: 'recipients' (must be an array), 'subject', and 'message'.")
     }
 
-    // Usa a API do Resend para enviar os e-mails
+    // Use the Resend API to send emails
     const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -37,20 +43,19 @@ serve(async (req) => {
             'Authorization': `Bearer ${RESEND_API_KEY}`,
         },
         body: JSON.stringify({
-            from: `ERP AECC <${EMAIL_FROM}>`, // O remetente que aparecerá no e-mail
+            from: `${PROJECT_NAME} <${EMAIL_FROM}>`, 
             to: recipients,
             subject: subject,
-            // Formata a mensagem de texto simples para um HTML básico para manter as quebras de linha
+            // Format plain text message into basic HTML to preserve line breaks
             html: `<div style="font-family: sans-serif; line-height: 1.6;">${message.replace(/\n/g, '<br>')}</div>`,
         }),
     });
 
     const data = await res.json();
     
-    // Se a API do Resend retornar um erro, repassa a mensagem de erro.
     if (!res.ok) {
         console.error('Resend API Error:', data);
-        throw new Error(data.message || 'Falha ao enviar o e-mail através do serviço.');
+        throw new Error(`Email service error: ${data.message || 'Failed to send email.'}`);
     }
 
     return new Response(JSON.stringify({ data }), {
@@ -58,9 +63,10 @@ serve(async (req) => {
       status: 200,
     })
   } catch (error) {
+    console.error("Error in 'send-email' Edge Function:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 400, // Use 400 for client/configuration errors
     })
   }
 })
