@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Page, User } from '../types';
 import { Home, Users, DollarSign, Calendar, FileText, Send, Settings, ChevronFirst, ChevronLast, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { LOGO_BASE64 } from '../constants';
+// FIX: The constant is named LOGO_AECC_BASE64. Using an alias for consistency.
+import { LOGO_AECC_BASE64 as LOGO_BASE64 } from '../constants';
 
 const NAV_ITEMS = [
   { name: 'Dashboard', icon: <Home size={20}/> },
