@@ -1,6 +1,7 @@
 import React from 'react';
 import { Users, UserCheck, Calendar, DollarSign, UserX, CalendarOff } from 'lucide-react';
 import { Member, Transaction, Event } from '../types';
+import { LogoAECC, PROJECT_NAME } from '../constants';
 
 const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; color: 'primary' | 'secondary' }> = ({ icon, title, value, color }) => (
   <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex items-start justify-between border border-gray-200 dark:border-gray-700">
@@ -28,6 +29,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, transactions, eve
 
   return (
     <div className="space-y-8">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center gap-6">
+        <LogoAECC className="h-20 w-20 flex-shrink-0" />
+        <div className="text-center sm:text-left">
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Bem-vindo ao painel de gerenciamento da</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{PROJECT_NAME}</h1>
+        </div>
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard color="secondary" icon={<Users className="text-secondary-700 dark:text-secondary-300"/>} title="Total de Membros" value={members.length.toString()} />
         <StatCard color="primary" icon={<UserCheck className="text-primary-700 dark:text-primary-300"/>} title="Membros Ativos" value={activeMembers.toString()} />
