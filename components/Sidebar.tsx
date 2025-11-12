@@ -1,8 +1,8 @@
- import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Page, User } from '../types';
 import { Home, Users, DollarSign, Calendar, FileText, Send, Settings, ChevronFirst, ChevronLast, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { LOGO_AECC_BASE64, ASSOCIATION_ACRONYM } from '../constants';
+import { LogoAECC, ASSOCIATION_ACRONYM } from '../constants';
 
 const NAV_ITEMS = [
   { name: 'Dashboard', icon: <Home size={20}/> },
@@ -36,7 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
     <aside className="h-screen sticky top-0">
       <nav className="h-full flex flex-col bg-white dark:bg-gray-800 border-r dark:border-gray-700 shadow-sm">
         <div className="p-4 pb-2 flex items-center">
-          <img src={LOGO_AECC_BASE64} alt="Logo AECC" className={`h-8 transition-all duration-300 ${expanded ? 'w-auto' : 'w-0'}`} />
+          <LogoAECC className={`overflow-hidden transition-all duration-300 flex-shrink-0 ${expanded ? 'h-8 w-8' : 'w-0'}`} />
           <span className={`font-bold text-lg ml-3 text-gray-800 dark:text-gray-200 overflow-hidden transition-all whitespace-nowrap duration-200 ${ expanded ? 'opacity-100' : 'opacity-0 w-0' }`} >
               {ASSOCIATION_ACRONYM}
           </span>
