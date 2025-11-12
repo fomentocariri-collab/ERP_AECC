@@ -1,7 +1,7 @@
- import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogIn, Loader2, AlertTriangle, Clipboard, Check, ExternalLink } from 'lucide-react';
-import { LOGO_AECC_BASE64, PROJECT_NAME as ASSOCIATION_NAME } from '../constants';
+import { ERP_NAME } from '../constants';
 import { supabaseProjectId } from '../supabaseClient';
 
 const RLS_FIX_SCRIPT = `-- ETAPA 1: Habilite a "Row Level Security" (RLS) para a tabela de perfis.
@@ -115,12 +115,11 @@ export const Login: React.FC = () => {
     <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 px-4">
         <div className="max-w-md w-full">
             <div className="text-center mb-8">
-                <img src={LOGO_AECC_BASE64} alt="Logo da Associação" className="mx-auto h-20 w-auto" />
                 <h1 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
-                    {ASSOCIATION_NAME}
+                    {ERP_NAME}
                 </h1>
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    Acesse seu painel de gerenciamento
+                    Bem-vindo! Acesse seu painel de gerenciamento.
                 </p>
             </div>
 
