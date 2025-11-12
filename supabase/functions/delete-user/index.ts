@@ -1,4 +1,4 @@
-/// <reference types="https://deno.land/x/deno/cli/types/dts/index.d.ts" />
+// FIX: Removed deprecated Deno type reference directive. The Supabase/Deno environment provides these types automatically, and the old reference was causing compilation errors.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 

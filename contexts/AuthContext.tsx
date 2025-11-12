@@ -1,9 +1,8 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../supabaseClient';
-// FIX: In older versions of Supabase JS v2, the User type was exported as AuthUser.
-// This change aligns with older v2 versions and resolves type errors.
-import type { AuthUser as SupabaseUser, Session } from '@supabase/supabase-js';
+// FIX: The latest Supabase JS v2 exports the user type as `User`, not `AuthUser`.
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -76,9 +75,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     setLoading(true);
-    // FIX: Correctly handle the subscription object from onAuthStateChange for Supabase JS v2.
-    // Older versions of Supabase JS v2 returned { data: subscription } instead of { data: { subscription } }.
-    const { data: subscription } = supabase.auth.onAuthStateChange(
+    // FIX: The latest Supabase JS v2 nests the subscription object inside a `data` property.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session: Session | null) => {
         try {
           const userProfile = await fetchUserProfile(session?.user ?? null);
