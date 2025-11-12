@@ -1,4 +1,5 @@
-// FIX: Removed deprecated Deno type reference directive. The Supabase/Deno environment provides these types automatically, and the old reference was causing compilation errors.
+// FIX: Added the official Supabase edge-runtime type definitions to resolve Deno global type errors.
+/// <reference types="npm:@supabase/functions-js/src/edge-runtime.d.ts" />
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const corsHeaders = {
