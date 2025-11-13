@@ -107,7 +107,7 @@ const App: React.FC = () => {
     }
     
     // Supabase Storage Error
-    if (action.includes('storage') || action.includes('arquivo')) {
+    if (action.includes('storage') || action.includes('arquivo') || action.includes('avatar')) {
         return `Erro de Storage ao ${action}: ${error.message}. Verifique as Políticas de Acesso (Policies) do Storage no Supabase.`;
     }
 
@@ -180,7 +180,7 @@ const App: React.FC = () => {
     }
   }, [currentUser, fetchData]);
 
-  // Generic CRUD Handler
+  // Generic CRUD Handler for simple operations
   const handleCrudOperation = async (
     action: string,
     operation: () => Promise<{ error: any | null }>,
@@ -207,15 +207,74 @@ const App: React.FC = () => {
       }
     }
   };
+  
+  const handleAddMember = async (data: { memberData: Omit<Member, 'id' | 'avatarUrl'>, avatarFile: File | null }) => {
+    try {
+      // FIX: The `memberData` type is `Omit<Member, 'id' | 'avatarUrl'>`, so `avatarUrl` cannot be accessed from it.
+      let avatarUrl = `https://i.pravatar.cc/150?u=${data.memberData.email}`;
+      
+      // 1. Upload avatar if provided
+      if (data.avatarFile) {
+        const filePath = `${currentUser!.id}/avatars/${new Date().getTime()}-${data.avatarFile.name}`;
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, data.avatarFile);
+        if (uploadError) throw { ...uploadError, context: 'storage' };
 
-  const handleAddMember = async (newMemberData: Omit<Member, 'id'>) => {
-    await handleCrudOperation('adicionar membro', async () => supabase.from('members').insert([camelToSnake(newMemberData)]).select().single(), true);
-  };
-
-  const handleUpdateMember = async (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => {
-    await handleCrudOperation('atualizar membro', async () => supabase.from('members').update(camelToSnake(updatedData)).eq('id', memberId).select().single(), true);
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        if (!urlData.publicUrl) throw { message: "Could not get public URL for avatar" };
+        avatarUrl = urlData.publicUrl;
+      }
+      
+      // 2. Insert member into database
+      const memberRecord = { ...data.memberData, avatarUrl };
+      const { error: dbError } = await supabase.from('members').insert([camelToSnake(memberRecord)]).select().single();
+      if (dbError) throw { ...dbError, context: 'database' };
+      
+      showToast('Membro adicionado com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      const action = error.context === 'storage' ? 'carregar avatar para o storage' : 'adicionar membro';
+      showToast(generateErrorMessage(action, error), 'error');
+      throw error;
+    }
   };
   
+  const handleUpdateMember = async (memberId: string, data: { memberData: Partial<Omit<Member, 'id'>>, avatarFile: File | null }) => {
+    try {
+      const memberToUpdate = members.find(m => m.id === memberId);
+      if (!memberToUpdate) throw new Error("Member not found");
+
+      let finalMemberData = { ...data.memberData };
+
+      // 1. Upload new avatar if provided
+      if (data.avatarFile) {
+        const filePath = `${currentUser!.id}/avatars/${new Date().getTime()}-${data.avatarFile.name}`;
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, data.avatarFile);
+        if (uploadError) throw { ...uploadError, context: 'storage' };
+
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        if (!urlData.publicUrl) throw { message: "Could not get public URL for new avatar" };
+        (finalMemberData as Partial<Member>).avatarUrl = urlData.publicUrl;
+
+        // 2. Delete old avatar from storage if it exists and is a storage URL
+        if (memberToUpdate.avatarUrl && memberToUpdate.avatarUrl.includes(supabase.storage.from('avatars').getPublicUrl('').data.publicUrl)) {
+            const oldFilePath = memberToUpdate.avatarUrl.split('/').slice(-2).join('/');
+            await supabase.storage.from('avatars').remove([oldFilePath]);
+        }
+      }
+
+      // 3. Update member in database
+      const { error: dbError } = await supabase.from('members').update(camelToSnake(finalMemberData)).eq('id', memberId).select().single();
+      if (dbError) throw { ...dbError, context: 'database' };
+      
+      showToast('Membro atualizado com sucesso!');
+      await fetchData();
+    } catch (error: any) {
+      const action = error.context === 'storage' ? 'atualizar avatar no storage' : 'atualizar membro';
+      showToast(generateErrorMessage(action, error), 'error');
+      throw error;
+    }
+  };
+
   const handleDeleteMember = async (memberId: string) => {
     await handleCrudOperation('excluir membro', async () => supabase.from('members').delete().eq('id', memberId));
   };
@@ -328,7 +387,7 @@ const App: React.FC = () => {
       case 'Dashboard':
         return <Dashboard members={members} transactions={transactions} events={events} />;
       case 'Members':
-        return <Members members={members} transactions={transactions} events={events} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} userRole={currentUser.role} />;
+        return <Members members={members} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} userRole={currentUser.role} />;
       case 'Financial':
         return <Financial transactions={transactions} members={members} onAddTransaction={handleAddTransaction} onDeleteTransaction={handleDeleteTransaction} userRole={currentUser.role} />;
       case 'Events':

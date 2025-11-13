@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { PlusCircle, Search, UserX, Edit, Trash2 } from 'lucide-react';
-import { Member, Transaction, Event, UserRole } from '../types';
+import { PlusCircle, Search, UserX, Edit, Trash2, AlertTriangle, Clipboard, Check, ExternalLink } from 'lucide-react';
+import { Member, UserRole } from '../types';
 import { AddMemberModal } from '../components/AddMemberModal';
 import { MemberDetailModal } from '../components/MemberDetailModal';
+import { supabaseProjectId } from '../supabaseClient';
 
 const getStatusBadge = (status: Member['status']) => {
   switch (status) {
@@ -15,23 +16,105 @@ const getStatusBadge = (status: Member['status']) => {
   }
 };
 
+const STORAGE_AVATAR_POLICIES_SCRIPT = `-- SCRIPT DE POLÍTICAS PARA O BUCKET 'avatars'
+
+-- ETAPA 1: Remova políticas antigas para uma instalação limpa (Opcional, mas recomendado)
+DROP POLICY IF EXISTS "Allow public read access for avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Allow authenticated users to upload avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Allow authenticated users to update their own avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Allow authenticated users to delete their own avatars" ON storage.objects;
+
+-- ETAPA 2: Crie as novas políticas de acesso para o bucket 'avatars'
+-- Política para VISUALIZAR (SELECT): Permite que qualquer pessoa veja os avatares.
+CREATE POLICY "Allow public read access for avatars"
+ON storage.objects FOR SELECT
+USING ( bucket_id = 'avatars' );
+
+-- Política para ENVIAR (INSERT): Permite que um usuário AUTENTICADO envie avatares para sua própria pasta.
+CREATE POLICY "Allow authenticated users to upload avatars"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK ( bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text );
+
+-- Política para ATUALIZAR (UPDATE): Permite que um usuário AUTENTICADO atualize avatares em sua própria pasta.
+CREATE POLICY "Allow authenticated users to update their own avatars"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING ( bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text );
+
+-- Política para EXCLUIR (DELETE): Permite que um usuário AUTENTICADO exclua avatares de sua própria pasta.
+CREATE POLICY "Allow authenticated users to delete their own avatars"
+ON storage.objects FOR DELETE
+TO authenticated
+USING ( bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text );
+`;
+
+const StorageInfoPanel: React.FC<{onClose: () => void}> = ({onClose}) => {
+  const [copied, setCopied] = useState(false);
+  const supabaseSqlUrl = `https://supabase.com/dashboard/project/${supabaseProjectId}/sql/new`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(STORAGE_AVATAR_POLICIES_SCRIPT);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-600 rounded-r-lg mb-6">
+      <div className="flex">
+        <div className="flex-shrink-0">
+          <AlertTriangle className="h-5 w-5 text-yellow-400 dark:text-yellow-500" aria-hidden="true" />
+        </div>
+        <div className="ml-3">
+          <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">Ação Necessária: Configure as Permissões do Storage de Avatares</p>
+          <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300 space-y-2">
+            <p>O upload do avatar falhou. Para corrigir, siga estes passos no seu painel Supabase:</p>
+            <ol className="list-decimal list-inside space-y-1 pl-2">
+                <li>Vá para a seção <strong>Storage</strong>.</li>
+                <li>Crie um novo "Bucket" chamado <code className="text-xs font-bold bg-yellow-200 dark:bg-yellow-800/50 p-1 rounded">avatars</code>. <strong>Importante:</strong> Marque a opção "Public bucket".</li>
+                <li>Vá para o <strong>SQL Editor</strong>, cole e execute o script abaixo para aplicar as permissões corretas.</li>
+            </ol>
+            <div className="mt-2 p-2 relative bg-gray-800 dark:bg-gray-900 text-white rounded-md font-mono text-xs overflow-x-auto">
+              <pre><code>{STORAGE_AVATAR_POLICIES_SCRIPT}</code></pre>
+              <button onClick={handleCopy} className="absolute top-2 right-2 p-1.5 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition-all">
+                {copied ? <Check size={14} className="text-green-400"/> : <Clipboard size={14} />}
+              </button>
+            </div>
+             <div className="mt-4 flex items-center gap-4">
+               <a 
+                href={supabaseSqlUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-secondary-700 rounded-md hover:bg-secondary-800"
+              >
+                <ExternalLink size={14} />
+                Abrir Editor SQL do Supabase
+              </a>
+              <button onClick={onClose} className="text-xs font-semibold text-gray-700 dark:text-gray-300 hover:underline">Já corrigi, fechar aviso.</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface MembersProps {
   members: Member[];
-  transactions: Transaction[];
-  events: Event[];
-  onAddMember: (newMember: Omit<Member, 'id'>) => Promise<void>;
-  onUpdateMember: (memberId: string, updatedData: Partial<Omit<Member, 'id'>>) => Promise<void>;
+  onAddMember: (data: { memberData: Omit<Member, 'id' | 'avatarUrl'>, avatarFile: File | null }) => Promise<void>;
+  onUpdateMember: (memberId: string, data: { memberData: Partial<Omit<Member, 'id'>>, avatarFile: File | null }) => Promise<void>;
   onDeleteMember: (memberId: string) => Promise<void>;
   userRole: UserRole;
 }
 
-export const Members: React.FC<MembersProps> = ({ members, transactions, events, onAddMember, onUpdateMember, onDeleteMember, userRole }) => {
+export const Members: React.FC<MembersProps> = ({ members, onAddMember, onUpdateMember, onDeleteMember, userRole }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [showStorageHelp, setShowStorageHelp] = useState(false);
   
   const canPerformActions = userRole === 'Super Admin';
 
@@ -55,6 +138,7 @@ export const Members: React.FC<MembersProps> = ({ members, transactions, events,
   };
   
   const handleOpenDetailModal = (member: Member) => {
+    // Here you would typically fetch detailed data, but for now we'll just use what we have
     setSelectedMember(member);
     setIsDetailModalOpen(true);
   }
@@ -66,11 +150,19 @@ export const Members: React.FC<MembersProps> = ({ members, transactions, events,
     setSelectedMember(null);
   };
 
-  const handleSaveMember = async (data: Omit<Member, 'id'>) => {
-    if (editingMember) {
-      await onUpdateMember(editingMember.id, data);
-    } else {
-      await onAddMember(data);
+  const handleSaveMember = async (data: { memberData: Omit<Member, 'id' | 'avatarUrl'>, avatarFile: File | null }) => {
+    try {
+        if (editingMember) {
+            await onUpdateMember(editingMember.id, { memberData: data.memberData, avatarFile: data.avatarFile });
+        } else {
+            await onAddMember(data);
+        }
+    } catch (error: any) {
+        if (error.context === 'storage') {
+            setShowStorageHelp(true);
+        }
+        // Re-throw to be handled by the modal's finally block
+        throw error;
     }
   };
   
@@ -93,10 +185,11 @@ export const Members: React.FC<MembersProps> = ({ members, transactions, events,
             isOpen={isDetailModalOpen}
             onClose={handleCloseModal}
             member={selectedMember}
-            transactions={transactions.filter(t => t.memberId === selectedMember.id)}
-            events={events} // Pass all events, filtering will happen inside
+            transactions={[]} // Data fetching logic will be added later
+            events={[]} // Data fetching logic will be added later
         />
       )}
+      {showStorageHelp && <StorageInfoPanel onClose={() => setShowStorageHelp(false)} />}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           <h2 className="text-xl font-semibold">Lista de Membros ({filteredMembers.length})</h2>

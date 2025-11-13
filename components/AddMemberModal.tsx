@@ -5,7 +5,7 @@ import { X, UserSquare } from 'lucide-react';
 interface AddMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (member: Omit<Member, 'id'>) => Promise<void>;
+  onSave: (data: { memberData: Omit<Member, 'id' | 'avatarUrl'>, avatarFile: File | null }) => Promise<void>;
   existingMember?: Member | null;
 }
 
@@ -23,7 +23,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
   const [birthDate, setBirthDate] = useState('');
   const [admissionDate, setAdmissionDate] = useState(new Date().toISOString().split('T')[0]);
   const [role, setRole] = useState<MemberRole>('Associado');
-  const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -41,7 +42,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
     setBirthDate('');
     setAdmissionDate(new Date().toISOString().split('T')[0]);
     setRole('Associado');
-    setAvatarUrl('');
+    setAvatarFile(null);
+    setAvatarPreview('');
     setError('');
     setIsSaving(false);
   }, []);
@@ -60,7 +62,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
         setBirthDate(existingMember.birthDate || '');
         setAdmissionDate(existingMember.admissionDate);
         setRole(existingMember.role);
-        setAvatarUrl(existingMember.avatarUrl || '');
+        setAvatarPreview(existingMember.avatarUrl || '');
+        setAvatarFile(null);
       } else {
         resetForm();
       }
@@ -70,11 +73,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
     }
   };
 
@@ -92,7 +92,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
     setError('');
     setIsSaving(true);
     
-    const memberData: Omit<Member, 'id'> = { 
+    // The avatarUrl will be set by the parent function after upload.
+    const memberData: Omit<Member, 'id' | 'avatarUrl'> = { 
         name, 
         email, 
         status, 
@@ -103,15 +104,15 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
         phone, 
         birthDate: birthDate || null,
         admissionDate, 
-        role,
-        avatarUrl: avatarUrl || `https://i.pravatar.cc/150?u=${email}`
+        role
     };
 
     try {
-      await onSave(memberData);
+      await onSave({ memberData, avatarFile });
       onClose();
     } catch (error) {
       console.error("Failed to save member:", error);
+      // Let the parent component (Members.tsx) handle showing the help panel.
     } finally {
       setIsSaving(false);
     }
@@ -140,14 +141,14 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Foto do Perfil</label>
                     <div className="mt-1 flex flex-col items-center">
                         <div className="w-32 h-32 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                        {avatarUrl ? (
-                            <img src={avatarUrl} alt="Prévia" className="w-full h-full object-cover" />
+                        {avatarPreview ? (
+                            <img src={avatarPreview} alt="Prévia" className="w-full h-full object-cover" />
                         ) : (
                             <UserSquare size={64} className="text-gray-400" />
                         )}
                         </div>
                         <label htmlFor="photo-upload" className="mt-2 text-sm text-secondary-600 dark:text-secondary-400 hover:text-secondary-700 cursor-pointer">
-                            {avatarUrl ? 'Alterar foto' : 'Enviar foto'}
+                            {avatarPreview ? 'Alterar foto' : 'Enviar foto'}
                             <input id="photo-upload" name="photo-upload" type="file" className="sr-only" accept="image/*" onChange={handlePhotoChange} />
                         </label>
                     </div>
