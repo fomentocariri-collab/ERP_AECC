@@ -89,7 +89,7 @@ const App: React.FC = () => {
         return `${defaultMessage} Verifique as Políticas de Acesso (Policies) do Storage no Supabase.`;
     }
     if (action.includes('enviar e-mail')) {
-        return `${defaultMessage} Verifique se a Edge Function 'send-email' foi implantada e se a chave da API Resend está configurada corretamente.`;
+        return `${defaultMessage} Verifique se a Edge Function 'send-email' foi implantada e se as chaves de API (Secrets) estão configuradas corretamente.`;
     }
     return `${defaultMessage} Verifique as permissões de acesso (RLS) no Supabase.`;
   };
@@ -288,7 +288,8 @@ const App: React.FC = () => {
         if (error) throw error;
         showToast('E-mails enviados para a fila de disparo!');
       } catch (error: any) {
-        console.error("Error invoking send-email function:", error);
+        // Log detailed error for debugging purposes
+        console.error("Detailed error from 'send-email' function invocation:", error);
         showToast(generateErrorMessage('enviar e-mail', error), 'error');
         // Do not re-throw, as the communication was already saved.
       }
