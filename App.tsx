@@ -17,7 +17,7 @@ import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 // Toast Notification Component
 const Toast: React.FC<{ message: string; type: 'success' | 'error'; onClose: () => void }> = ({ message, type, onClose }) => {
   useEffect(() => {
-    const timer = setTimeout(onClose, 5000);
+    const timer = setTimeout(onClose, 8000); // Increased time for detailed errors
     return () => clearTimeout(timer);
   }, [onClose]);
 
@@ -28,8 +28,8 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; onClose: () 
   const Icon = isSuccess ? CheckCircle2 : AlertCircle;
 
   return (
-    <div className={`fixed top-20 right-6 p-4 rounded-lg shadow-2xl border ${bgColor} ${borderColor} ${textColor} flex items-center gap-3 z-50`}>
-      <Icon className="h-5 w-5" />
+    <div className={`fixed top-20 right-6 p-4 rounded-lg shadow-2xl border ${bgColor} ${borderColor} ${textColor} flex items-center gap-3 z-50 max-w-md`}>
+      <Icon className="h-5 w-5 flex-shrink-0" />
       <p className="font-medium text-sm">{message}</p>
     </div>
   );
@@ -84,14 +84,40 @@ const App: React.FC = () => {
   };
   
   const generateErrorMessage = (action: string, error: any) => {
-    const defaultMessage = `Erro ao ${action}: ${error.message}.`;
+    console.error(`Detailed error on "${action}":`, error);
+    
+    // Specific check for corrupted refresh token
+    if (error.message?.includes('Refresh Token Not Found') || error.message?.includes('Invalid Refresh Token')) {
+        return `Sua sessão está corrompida. Por favor, limpe os dados de navegação e faça login novamente.`;
+    }
+
+    // Network Error (CORS, Firewall, Offline)
+    if (error.message === 'Failed to fetch') {
+      return `Erro de rede ao ${action}. Verifique sua conexão, firewall, ou extensões do navegador (ex: AdBlock).`;
+    }
+
+    // Supabase Auth Error (e.g., JWT expired)
+    if (error.code === 'PGRST301' || error.status === 401 || (error.message && (error.message.includes('JWT') || error.message.includes('token')))) {
+      return 'Sua sessão expirou. Por favor, faça login novamente.';
+    }
+
+    // Supabase RLS (Row Level Security) Error
+    if (error.code === '42501' || (error.message && error.message.includes('violates row-level security policy'))) {
+        return `Erro de permissão ao ${action}. Verifique as Políticas de Acesso (RLS) da tabela no Supabase.`;
+    }
+    
+    // Supabase Storage Error
     if (action.includes('storage') || action.includes('arquivo')) {
-        return `${defaultMessage} Verifique as Políticas de Acesso (Policies) do Storage no Supabase.`;
+        return `Erro de Storage ao ${action}: ${error.message}. Verifique as Políticas de Acesso (Policies) do Storage no Supabase.`;
     }
-    if (action.includes('enviar e-mail')) {
-        return `${defaultMessage} Verifique se a Edge Function 'send-email' foi implantada e se as chaves de API (Secrets) estão configuradas corretamente.`;
+
+    // Supabase Edge Function Error
+    if (action.includes('e-mail') || action.includes('usuário')) {
+        return `Erro na Edge Function ao ${action}: ${error.message}. Verifique os logs da função no painel do Supabase.`;
     }
-    return `${defaultMessage} Verifique as permissões de acesso (RLS) no Supabase.`;
+
+    // Default detailed message
+    return `Erro ao ${action}: ${error.message || 'Ocorreu um erro desconhecido.'} (Code: ${error.code || 'N/A'})`;
   };
 
   const fetchData = useCallback(async () => {
@@ -112,7 +138,8 @@ const App: React.FC = () => {
   
         const errors = [membersRes, transactionsRes, eventsRes, documentsRes, communicationsRes].map(res => res.error).filter(Boolean);
         if (errors.length > 0) {
-          throw new Error(errors.map(e => e!.message).join(', '));
+          // Throw the first error to be handled by the catch block
+          throw errors[0];
         }
   
         setMembers(snakeToCamel(membersRes.data) as Member[]);
@@ -122,12 +149,23 @@ const App: React.FC = () => {
         setCommunications(snakeToCamel(communicationsRes.data) as Communication[]);
   
       } catch (error: any) {
-        console.error("Error fetching data:", error.message);
-        showToast(`Falha ao carregar dados: ${error.message}`, 'error');
+        const errorMessage = generateErrorMessage('carregar dados', error);
+        showToast(errorMessage, 'error');
+
+        // Check if it's an authentication error that requires logout
+        const isAuthError = error.code === 'PGRST301' || error.status === 401 || 
+                            (error.message && (error.message.includes('JWT') || 
+                                              error.message.includes('token') || 
+                                              error.message.includes('Invalid Refresh Token')));
+
+        if (isAuthError) {
+          // The session is invalid or expired. Force a logout so the user can log in again with a fresh session.
+          setTimeout(() => logout(), 3000); 
+        }
       } finally {
         setAppLoading(false);
       }
-  }, [currentUser]);
+  }, [currentUser, logout]);
 
   useEffect(() => {
     if (currentUser) {
@@ -155,13 +193,11 @@ const App: React.FC = () => {
       showToast(`${action.charAt(0).toUpperCase() + action.slice(1)} com sucesso!`);
       await fetchData();
     } catch (error: any) {
-      console.error(`Error during '${action}':`, error);
-      
       const isAuthError = error.code === 'PGRST301' || error.status === 401 || (error.message && (error.message.includes('JWT') || error.message.includes('token')));
 
       if (isAuthError) {
-        showToast('Sua sessão expirou. Você será desconectado.', 'error');
-        setTimeout(() => logout(), 1500); 
+        showToast(generateErrorMessage(action.toLowerCase(), error), 'error');
+        setTimeout(() => logout(), 2500); 
       } else {
         showToast(generateErrorMessage(action.toLowerCase(), error), 'error');
       }
@@ -233,22 +269,13 @@ const App: React.FC = () => {
       await fetchData();
 
     } catch (error: any) {
-        console.error(`Error during 'adicionar documento':`, error);
-        
-        const isAuthError = error.code === 'PGRST301' || error.status === 401 || (error.message && (error.message.includes('JWT') || error.message.includes('token')));
-        if (isAuthError) {
-            showToast('Sua sessão expirou. Você será desconectado.', 'error');
-            setTimeout(() => logout(), 1500);
-            throw error;
-        }
-
         let action = 'adicionar documento';
         if (error.context === 'storage') action = 'carregar arquivo para o storage';
         else if (error.context === 'url') action = 'obter URL pública';
         else if (error.context === 'database') action = 'salvar informações do documento';
         
         showToast(generateErrorMessage(action, error), 'error');
-        throw error;
+        throw error; // Re-throw to be caught by the modal
     }
   };
 
@@ -258,7 +285,8 @@ const App: React.FC = () => {
       const url = new URL(doc.url);
       const filePath = url.pathname.split('/documents/')[1];
       if (filePath) {
-          await supabase.storage.from('documents').remove([decodeURIComponent(filePath)]);
+          const { error: storageError } = await supabase.storage.from('documents').remove([decodeURIComponent(filePath)]);
+          if (storageError) console.error("Ignorable storage error on delete:", storageError.message);
       }
     } catch(e) { console.error("Could not parse URL to delete from storage:", doc.url, e); }
     
@@ -288,8 +316,6 @@ const App: React.FC = () => {
         if (error) throw error;
         showToast('E-mails enviados para a fila de disparo!');
       } catch (error: any) {
-        // Log detailed error for debugging purposes
-        console.error("Detailed error from 'send-email' function invocation:", error);
         showToast(generateErrorMessage('enviar e-mail', error), 'error');
         // Do not re-throw, as the communication was already saved.
       }

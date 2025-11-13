@@ -1,6 +1,6 @@
-// FIX: Replaced JSR import with a more compatible triple-slash directive to correctly load Deno runtime types, resolving errors with 'Deno.serve' and 'Deno.env'.
-// FIX: Corrected the path in the type reference from 'src' to 'dist' to properly load Deno types for edge functions.
-/// <reference types="https://esm.sh/@supabase/functions-js/dist/edge-runtime.d.ts" />
+// FIX: The 'npm:' specifier in the type reference is not always resolved correctly by TypeScript tooling.
+// Using a direct URL to the type definition file on a CDN is a more robust way to ensure the Deno runtime types are loaded.
+/// <reference types="https://unpkg.com/@supabase/functions-js/dist/edge-runtime.d.ts" />
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
