@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../supabaseClient';
-import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -31,6 +31,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
 
       if (error || !profile) {
+          // This error indicates the profile wasn't found, which is the root cause of the login loop for corrupt sessions.
           throw { code: 'PGRST116', message: 'Profile not found or RLS issue' };
       }
 
@@ -41,6 +42,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error: any) {
         console.error("Error fetching user profile:", error.message);
         if (error.code === 'PGRST116') {
+            // Special error code to be caught by the caller to handle UI hints for RLS.
             throw new Error("RLS_RECURSION");
         }
         throw error;
@@ -70,29 +72,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     setLoading(true);
-    const { data } = supabase.auth.onAuthStateChange(
-      async (_event, session: Session | null) => {
+    // Initial session check
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
         try {
-          const userProfile = await fetchUserProfile(session?.user ?? null);
+          const userProfile = await fetchUserProfile(session.user);
           setCurrentUser(userProfile);
         } catch (error) {
-          console.error("Auth state change error:", error);
+          console.error("Initial session was corrupt. Signing out.", error);
+          await supabase.auth.signOut();
           setCurrentUser(null);
-          // Don't sign out here as it can cause its own loops. 
-          // The session is already invalid if fetchUserProfile fails.
+        }
+      }
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        try {
+            const userProfile = await fetchUserProfile(session?.user ?? null);
+            setCurrentUser(userProfile);
+        } catch (error) {
+            console.error("Auth state change failed to fetch profile. Signing out.", error);
+            await supabase.auth.signOut();
+            setCurrentUser(null);
         } finally {
-          setLoading(false);
+            if (_event !== 'INITIAL_SESSION') {
+              setLoading(false);
+            }
         }
       }
     );
 
-    const subscription = data.subscription;
-    
     return () => {
       subscription?.unsubscribe();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // FIX: Empty dependency array ensures this runs only once on mount, breaking the loop.
+  }, [fetchUserProfile]);
 
   useEffect(() => {
       if(currentUser) {
@@ -108,9 +123,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
         const userProfile = await fetchUserProfile(data.user);
         if (!userProfile) {
+          // This case should ideally not be hit if RLS is correct, but as a fallback:
+          await supabase.auth.signOut();
           throw new Error("Perfil de usuário não encontrado após o login.");
         }
-        // onAuthStateChange will set the user, but we do it here for faster UI response.
+        // onAuthStateChange will also fire, but we set it here for immediate UI update.
         setCurrentUser(userProfile);
     } catch (error: any) {
         await supabase.auth.signOut();
