@@ -30,10 +30,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('id', supabaseUser.id)
         .single();
 
-      // Se houver um erro OU se nenhum perfil for encontrado para um usuário autenticado,
-      // é tratado como um problema potencial de RLS.
       if (error || !profile) {
-          // Força um código de erro específico que podemos capturar de forma confiável.
           throw { code: 'PGRST116', message: 'Profile not found or RLS issue' };
       }
 
@@ -43,7 +40,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
     } catch (error: any) {
         console.error("Error fetching user profile:", error.message);
-        // Este código de erro específico indica que um perfil não foi encontrado, que agora também disparamos manualmente.
         if (error.code === 'PGRST116') {
             throw new Error("RLS_RECURSION");
         }
@@ -74,7 +70,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     setLoading(true);
-    // FIX: Torna o tratamento da subscrição robusto para diferentes assinaturas da API.
     const { data } = supabase.auth.onAuthStateChange(
       async (_event, session: Session | null) => {
         try {
@@ -82,23 +77,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setCurrentUser(userProfile);
         } catch (error) {
           console.error("Auth state change error:", error);
-          // Se a busca de perfil falhar na mudança de sessão, desloga o usuário para garantir um estado limpo.
           setCurrentUser(null);
-          await supabase.auth.signOut();
+          // Don't sign out here as it can cause its own loops. 
+          // The session is already invalid if fetchUserProfile fails.
         } finally {
           setLoading(false);
         }
       }
     );
 
-    // FIX: Correctly access the subscription object from the `data` property. The previous
-    // logic could incorrectly reference the parent object, causing a runtime error.
     const subscription = data.subscription;
     
     return () => {
       subscription?.unsubscribe();
     };
-  }, [fetchUserProfile]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // FIX: Empty dependency array ensures this runs only once on mount, breaking the loop.
 
   useEffect(() => {
       if(currentUser) {
@@ -114,15 +108,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
         const userProfile = await fetchUserProfile(data.user);
         if (!userProfile) {
-          // Este caminho idealmente não deve ser tomado devido à nova lógica de fetchUserProfile, mas serve como um fallback.
           throw new Error("Perfil de usuário não encontrado após o login.");
         }
-        // O onAuthStateChange cuidará de definir o usuário, mas podemos fazer isso aqui para uma resposta de UI mais rápida.
+        // onAuthStateChange will set the user, but we do it here for faster UI response.
         setCurrentUser(userProfile);
     } catch (error: any) {
         await supabase.auth.signOut();
         if (error.message === "RLS_RECURSION") {
-             throw new Error(error.message); // Propaga o erro específico para a UI lidar.
+             throw new Error(error.message); // Propagate specific error for the UI.
         }
         throw new Error(`Login OK, mas perfil não encontrado. Verifique a RLS (Row Level Security) da tabela 'profiles'.`);
     }

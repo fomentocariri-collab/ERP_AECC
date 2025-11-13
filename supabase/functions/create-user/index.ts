@@ -1,6 +1,7 @@
 // FIX: The 'npm:' specifier in the type reference is not always resolved correctly by TypeScript tooling.
 // Using a direct URL to the type definition file on a CDN is a more robust way to ensure the Deno runtime types are loaded.
-/// <reference types="https://unpkg.com/@supabase/functions-js/dist/edge-runtime.d.ts" />
+// FIX: Switched to jsdelivr CDN to resolve Deno type definitions, as the unpkg URL was causing resolution failures.
+/// <reference types="https://cdn.jsdelivr.net/npm/@supabase/functions-js/dist/edge-runtime.d.ts" />
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
