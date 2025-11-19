@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { PlusCircle, Download, ArrowUpCircle, ArrowDownCircle, Receipt, Trash2 } from 'lucide-react';
+import { PlusCircle, Download, ArrowUpCircle, ArrowDownCircle, Receipt, Trash2, Sparkles } from 'lucide-react';
 import { Transaction, Member, UserRole } from '../types';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { ReportModal } from '../components/ReportModal';
+import { AIAnalysisModal } from '../components/AIAnalysisModal';
 
 interface FinancialProps {
     transactions: Transaction[];
@@ -15,6 +16,7 @@ interface FinancialProps {
 export const Financial: React.FC<FinancialProps> = ({ transactions, members, onAddTransaction, onDeleteTransaction, userRole }) => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
     const canPerformActions = userRole === 'Super Admin' || userRole === 'Financeiro';
 
@@ -50,7 +52,7 @@ export const Financial: React.FC<FinancialProps> = ({ transactions, members, onA
             </td>
             {canPerformActions && (
                 <td className="px-6 py-4 text-right">
-                    <button onClick={() => handleDelete(transaction.id)} className="p-2 text-gray-500 hover:text-red-600 dark:hover:text-red-500">
+                    <button onClick={() => handleDelete(transaction.id)} className="p-2 text-gray-500 hover:text-primary-700 dark:hover:text-primary-500">
                         <Trash2 size={16} />
                     </button>
                 </td>
@@ -72,35 +74,47 @@ export const Financial: React.FC<FinancialProps> = ({ transactions, members, onA
             members={members}
             transactions={transactions}
         />
+        <AIAnalysisModal 
+            isOpen={isAIModalOpen}
+            onClose={() => setIsAIModalOpen(false)}
+            transactions={transactions}
+        />
+
         <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-green-100 dark:bg-green-900/50 p-6 rounded-xl text-green-800 dark:text-green-200">
+                <div className="bg-green-100 dark:bg-green-900/50 p-6 rounded-xl text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800">
                     <h3 className="font-medium">Receita Total</h3>
                     <p className="text-3xl font-bold">R$ {totalIncome.toFixed(2)}</p>
                 </div>
-                <div className="bg-red-100 dark:bg-red-900/50 p-6 rounded-xl text-red-800 dark:text-red-200">
+                <div className="bg-red-100 dark:bg-red-900/50 p-6 rounded-xl text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800">
                     <h3 className="font-medium">Despesa Total</h3>
                     <p className="text-3xl font-bold">R$ {totalExpense.toFixed(2)}</p>
                 </div>
-                <div className="bg-secondary-100 dark:bg-secondary-900/50 p-6 rounded-xl text-secondary-800 dark:text-secondary-200">
+                <div className="bg-blue-100 dark:bg-blue-900/50 p-6 rounded-xl text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800">
                     <h3 className="font-medium">Saldo</h3>
                     <p className="text-3xl font-bold">R$ {balance.toFixed(2)}</p>
                 </div>
             </div>
 
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <h2 className="text-xl font-semibold">Transações Recentes</h2>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button 
+                            onClick={() => setIsAIModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg hover:from-purple-600 hover:to-indigo-700 shadow-md transition-all"
+                        >
+                            <Sparkles size={16} /> Análise IA
+                        </button>
                         {canPerformActions && (
                             <>
                                 <button onClick={() => setIsReportModalOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
-                                    <Download size={16} /> Gerar Relatório
+                                    <Download size={16} /> Relatórios
                                 </button>
                                 <button 
                                     onClick={() => setIsAddModalOpen(true)}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800">
-                                    <PlusCircle size={16} /> Adicionar Transação
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800">
+                                    <PlusCircle size={16} /> Nova Transação
                                 </button>
                             </>
                         )}

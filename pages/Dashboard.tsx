@@ -1,15 +1,15 @@
 import React from 'react';
-import { Users, UserCheck, Calendar, DollarSign, UserX, CalendarOff } from 'lucide-react';
+import { Users, UserCheck, Calendar, DollarSign, UserX, CalendarOff, TrendingUp, TrendingDown } from 'lucide-react';
 import { Member, Transaction, Event } from '../types';
-import { LogoAECC, PROJECT_NAME } from '../constants';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
-const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; color: 'primary' | 'secondary' }> = ({ icon, title, value, color }) => (
+const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; }> = ({ icon, title, value }) => (
   <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex items-start justify-between border border-gray-200 dark:border-gray-700">
     <div>
       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-      <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
+      <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
     </div>
-    <div className={`p-3 rounded-full ${color === 'primary' ? 'bg-primary-100 dark:bg-primary-900/50' : 'bg-secondary-100 dark:bg-secondary-900/50'}`}>
+    <div className="bg-primary-100 dark:bg-primary-900/50 p-3 rounded-full">
       {icon}
     </div>
   </div>
@@ -27,21 +27,73 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, transactions, eve
     .filter(t => t.type === 'Income')
     .reduce((acc, t) => acc + t.amount, 0);
 
+  // Prepare data for charts
+  const financialData = transactions.reduce((acc, curr) => {
+    const month = new Date(curr.date).toLocaleString('default', { month: 'short' });
+    const existing = acc.find(a => a.name === month);
+    if (existing) {
+        if(curr.type === 'Income') existing.income += curr.amount;
+        else existing.expense += curr.amount;
+    } else {
+        acc.push({ 
+            name: month, 
+            income: curr.type === 'Income' ? curr.amount : 0, 
+            expense: curr.type === 'Expense' ? curr.amount : 0 
+        });
+    }
+    return acc;
+  }, [] as any[]).slice(0, 6).reverse(); // Last 6 months
+
   return (
     <div className="space-y-8">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center gap-6">
-        <LogoAECC className="h-20 w-20 flex-shrink-0" />
-        <div className="text-center sm:text-left">
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Bem-vindo ao painel de gerenciamento da</p>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{PROJECT_NAME}</h1>
-        </div>
-      </div>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard color="secondary" icon={<Users className="text-secondary-700 dark:text-secondary-300"/>} title="Total de Membros" value={members.length.toString()} />
-        <StatCard color="primary" icon={<UserCheck className="text-primary-700 dark:text-primary-300"/>} title="Membros Ativos" value={activeMembers.toString()} />
-        <StatCard color="secondary" icon={<Calendar className="text-secondary-700 dark:text-secondary-300"/>} title="Próximos Eventos" value={events.length.toString()} />
-        <StatCard color="primary" icon={<DollarSign className="text-primary-700 dark:text-primary-300"/>} title="Receita do Mês" value={`R$ ${monthlyIncome.toFixed(2)}`} />
+        <StatCard icon={<Users className="text-primary-700 dark:text-primary-300"/>} title="Total de Membros" value={members.length.toString()} />
+        <StatCard icon={<UserCheck className="text-primary-700 dark:text-primary-300"/>} title="Membros Ativos" value={activeMembers.toString()} />
+        <StatCard icon={<Calendar className="text-primary-700 dark:text-primary-300"/>} title="Próximos Eventos" value={events.length.toString()} />
+        <StatCard icon={<DollarSign className="text-primary-700 dark:text-primary-300"/>} title="Receita do Mês" value={`R$ ${monthlyIncome.toFixed(2)}`} />
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 h-80">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
+                <TrendingUp size={20} className="text-green-500"/> Fluxo de Caixa (Últimos 6 Meses)
+            </h3>
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={financialData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+                    <XAxis dataKey="name" stroke="#9CA3AF" />
+                    <YAxis stroke="#9CA3AF" />
+                    <Tooltip 
+                        contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#F3F4F6' }}
+                        itemStyle={{ color: '#F3F4F6' }}
+                    />
+                    <Bar dataKey="income" name="Receita" fill="#10B981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="expense" name="Despesa" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 h-80">
+             <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
+                <TrendingDown size={20} className="text-blue-500"/> Balanço Financeiro
+            </h3>
+             <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={financialData}>
+                    <defs>
+                        <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                        </linearGradient>
+                    </defs>
+                    <XAxis dataKey="name" stroke="#9CA3AF" />
+                    <YAxis stroke="#9CA3AF" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#F3F4F6' }}/>
+                    <Area type="monotone" dataKey="income" stroke="#3B82F6" fillOpacity={1} fill="url(#colorIncome)" />
+                </AreaChart>
+            </ResponsiveContainer>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -72,7 +124,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, transactions, eve
           <h2 className="text-lg font-semibold mb-4">Próximos Eventos</h2>
           <div className="space-y-4">
             {events.length > 0 ? events.slice(-3).reverse().map(event => (
-                <div key={event.id} className="border-l-4 border-secondary-500 pl-4 py-1">
+                <div key={event.id} className="border-l-4 border-primary-500 pl-4 py-1">
                     <p className="font-semibold text-sm">{event.title}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{event.date} - {event.location}</p>
                 </div>

@@ -1,139 +1,115 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Member, MemberRole } from '../types';
 import { X, UserSquare } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 interface AddMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { memberData: Omit<Member, 'id' | 'avatarUrl'>, avatarFile: File | null }) => Promise<void>;
+  onSave: (member: Omit<Member, 'id'>) => Promise<void>;
   existingMember?: Member | null;
 }
 
-const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-500 focus:ring-secondary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-secondary-500 dark:focus:ring-secondary-500";
+const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-primary-500 dark:focus:ring-primary-500";
+const ERROR_CLASS = "text-red-500 text-xs mt-1";
+
+// Zod Schema Definition
+const memberSchema = z.object({
+  name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres"),
+  email: z.string().email("Email inválido"),
+  cpf: z.string().optional(), // Em um app real, validariamos o formato do CPF
+  phone: z.string().optional(),
+  birthDate: z.string().optional(),
+  admissionDate: z.string().min(1, "Data de admissão é obrigatória"),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().max(2, "UF deve ter 2 letras").optional(),
+  role: z.enum(['Diretoria', 'Membro Fundador', 'Associado']),
+  status: z.enum(['Active', 'Inactive', 'Pending']),
+});
+
+type MemberFormData = z.infer<typeof memberSchema>;
 
 export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose, onSave, existingMember }) => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'Active' | 'Inactive' | 'Pending'>('Pending');
-  const [cpf, setCpf] = useState('');
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [phone, setPhone] = useState('');
-  const [birthDate, setBirthDate] = useState('');
-  const [admissionDate, setAdmissionDate] = useState(new Date().toISOString().split('T')[0]);
-  const [role, setRole] = useState<MemberRole>('Associado');
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string>('');
-  const [error, setError] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  const isEditing = !!existingMember;
-
-  const resetForm = useCallback(() => {
-    setName('');
-    setEmail('');
-    setStatus('Pending');
-    setCpf('');
-    setAddress('');
-    setCity('');
-    setState('');
-    setPhone('');
-    setBirthDate('');
-    setAdmissionDate(new Date().toISOString().split('T')[0]);
-    setRole('Associado');
-    setAvatarFile(null);
-    setAvatarPreview('');
-    setError('');
-    setIsSaving(false);
-  }, []);
+  const { register, handleSubmit, reset, formState: { errors }, setValue } = useForm<MemberFormData>({
+    resolver: zodResolver(memberSchema),
+    defaultValues: {
+      status: 'Pending',
+      role: 'Associado',
+      admissionDate: new Date().toISOString().split('T')[0],
+    }
+  });
 
   useEffect(() => {
     if (isOpen) {
-      if (isEditing && existingMember) {
-        setName(existingMember.name);
-        setEmail(existingMember.email);
-        setStatus(existingMember.status);
-        setCpf(existingMember.cpf || '');
-        setAddress(existingMember.address || '');
-        setCity(existingMember.city || '');
-        setState(existingMember.state || '');
-        setPhone(existingMember.phone || '');
-        setBirthDate(existingMember.birthDate || '');
-        setAdmissionDate(existingMember.admissionDate);
-        setRole(existingMember.role);
-        setAvatarPreview(existingMember.avatarUrl || '');
-        setAvatarFile(null);
+      if (existingMember) {
+        // Populate form for editing
+        setValue('name', existingMember.name);
+        setValue('email', existingMember.email);
+        setValue('cpf', existingMember.cpf);
+        setValue('phone', existingMember.phone);
+        setValue('birthDate', existingMember.birthDate || '');
+        setValue('admissionDate', existingMember.admissionDate);
+        setValue('address', existingMember.address);
+        setValue('city', existingMember.city);
+        setValue('state', existingMember.state);
+        setValue('role', existingMember.role);
+        setValue('status', existingMember.status);
+        setAvatarUrl(existingMember.avatarUrl);
       } else {
-        resetForm();
+        reset({
+             status: 'Pending',
+             role: 'Associado',
+             admissionDate: new Date().toISOString().split('T')[0],
+        });
+        setAvatarUrl('');
       }
     }
-  }, [isOpen, existingMember, isEditing, resetForm]);
-  
+  }, [isOpen, existingMember, setValue, reset]);
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-
-  if (!isOpen) {
-    return null;
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !email || !admissionDate) {
-      setError('Nome, Email e Data de Admissão são obrigatórios.');
-      return;
-    }
-    setError('');
+  const onSubmit = async (data: MemberFormData) => {
     setIsSaving(true);
-    
-    // The avatarUrl will be set by the parent function after upload.
-    const memberData: Omit<Member, 'id' | 'avatarUrl'> = { 
-        name, 
-        email, 
-        status, 
-        cpf, 
-        address, 
-        city, 
-        state, 
-        phone, 
-        birthDate: birthDate || null,
-        admissionDate, 
-        role
-    };
+    const finalData = {
+        ...data,
+        birthDate: data.birthDate || null, // Convert empty string to null for optional date
+        avatarUrl: avatarUrl || `https://i.pravatar.cc/150?u=${data.email}`
+    } as any; // Type casting for simplicity here
 
-    try {
-      await onSave({ memberData, avatarFile });
-      onClose();
-    } catch (error) {
-      console.error("Failed to save member:", error);
-      // Let the parent component (Members.tsx) handle showing the help panel.
-    } finally {
-      setIsSaving(false);
-    }
+    await onSave(finalData);
+    setIsSaving(false);
+    onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-3xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+        
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">{isEditing ? 'Editar Membro' : 'Adicionar Novo Membro'}</h2>
+          <h2 className="text-xl font-semibold">{existingMember ? 'Editar Membro' : 'Adicionar Novo Membro'}</h2>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit}>
+
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
             
             <div className="flex flex-col sm:flex-row gap-6 items-start">
@@ -141,43 +117,45 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Foto do Perfil</label>
                     <div className="mt-1 flex flex-col items-center">
                         <div className="w-32 h-32 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                        {avatarPreview ? (
-                            <img src={avatarPreview} alt="Prévia" className="w-full h-full object-cover" />
+                        {avatarUrl ? (
+                            <img src={avatarUrl} alt="Prévia" className="w-full h-full object-cover" />
                         ) : (
                             <UserSquare size={64} className="text-gray-400" />
                         )}
                         </div>
-                        <label htmlFor="photo-upload" className="mt-2 text-sm text-secondary-600 dark:text-secondary-400 hover:text-secondary-700 cursor-pointer">
-                            {avatarPreview ? 'Alterar foto' : 'Enviar foto'}
-                            <input id="photo-upload" name="photo-upload" type="file" className="sr-only" accept="image/*" onChange={handlePhotoChange} />
+                        <label htmlFor="photo-upload" className="mt-2 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 cursor-pointer">
+                            {avatarUrl ? 'Alterar foto' : 'Enviar foto'}
+                            <input id="photo-upload" type="file" className="sr-only" accept="image/*" onChange={handlePhotoChange} />
                         </label>
                     </div>
                 </div>
 
-                <div className="flex-grow space-y-4">
+                <div className="flex-grow space-y-4 w-full">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
-                            <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLASS} required/>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
+                            <input {...register('name')} className={INPUT_CLASS} />
+                            {errors.name && <p className={ERROR_CLASS}>{errors.name.message}</p>}
                         </div>
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                            <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLASS} required/>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                            <input type="email" {...register('email')} className={INPUT_CLASS} />
+                            {errors.email && <p className={ERROR_CLASS}>{errors.email.message}</p>}
                         </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="cpf" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CPF</label>
-                            <input type="text" id="cpf" value={cpf} onChange={(e) => setCpf(e.target.value)} className={INPUT_CLASS} />
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">CPF</label>
+                            <input {...register('cpf')} className={INPUT_CLASS} />
                         </div>
                         <div>
-                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Telefone</label>
-                            <input type="tel" id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} className={INPUT_CLASS} />
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Telefone</label>
+                            <input {...register('phone')} className={INPUT_CLASS} />
                         </div>
                     </div>
                     <div>
-                        <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Data de Nascimento</label>
-                        <input type="date" id="birthDate" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={INPUT_CLASS} />
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Data de Nascimento</label>
+                        <input type="date" {...register('birthDate')} className={INPUT_CLASS} />
                     </div>
                 </div>
             </div>
@@ -186,17 +164,18 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
                  <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Endereço</h3>
             </div>
              <div>
-                <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Endereço</label>
-                <input type="text" id="address" value={address} onChange={(e) => setAddress(e.target.value)} className={INPUT_CLASS} />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Endereço</label>
+                <input {...register('address')} className={INPUT_CLASS} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div>
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cidade</label>
-                    <input type="text" id="city" value={city} onChange={(e) => setCity(e.target.value)} className={INPUT_CLASS} />
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cidade</label>
+                    <input {...register('city')} className={INPUT_CLASS} />
                 </div>
                  <div>
-                    <label htmlFor="state" className="block text-sm font-medium text-gray-700 dark:text-gray-300">UF</label>
-                    <input type="text" id="state" value={state} onChange={(e) => setState(e.target.value)} className={INPUT_CLASS} maxLength={2} />
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">UF</label>
+                    <input {...register('state')} className={INPUT_CLASS} maxLength={2} />
+                    {errors.state && <p className={ERROR_CLASS}>{errors.state.message}</p>}
                 </div>
             </div>
             
@@ -205,20 +184,21 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label htmlFor="admissionDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Data de Admissão</label>
-                    <input type="date" id="admissionDate" value={admissionDate} onChange={(e) => setAdmissionDate(e.target.value)} className={INPUT_CLASS} required/>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Data de Admissão</label>
+                    <input type="date" {...register('admissionDate')} className={INPUT_CLASS} />
+                    {errors.admissionDate && <p className={ERROR_CLASS}>{errors.admissionDate.message}</p>}
                 </div>
                 <div>
-                    <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Função</label>
-                    <select id="role" value={role} onChange={(e) => setRole(e.target.value as MemberRole)} className={INPUT_CLASS}>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Função</label>
+                    <select {...register('role')} className={INPUT_CLASS}>
                         <option value="Associado">Associado</option>
                         <option value="Membro Fundador">Membro Fundador</option>
                         <option value="Diretoria">Diretoria</option>
                     </select>
                 </div>
                  <div>
-                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                    <select id="status" value={status} onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive' | 'Pending')} className={INPUT_CLASS}>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                    <select {...register('status')} className={INPUT_CLASS}>
                         <option value="Pending">Pendente</option>
                         <option value="Active">Ativo</option>
                         <option value="Inactive">Inativo</option>
@@ -227,7 +207,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
             </div>
             
           </div>
-          {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+          
           <div className="flex justify-end gap-2 pt-6 border-t dark:border-gray-700 mt-4">
             <button
               type="button"
@@ -240,9 +220,9 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
             <button
               type="submit"
               disabled={isSaving}
-              className="px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800 disabled:bg-secondary-400 disabled:cursor-wait"
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-primary-400 disabled:cursor-wait"
             >
-              {isSaving ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Salvar Membro')}
+              {isSaving ? 'Salvando...' : (existingMember ? 'Salvar Alterações' : 'Salvar Membro')}
             </button>
           </div>
         </form>

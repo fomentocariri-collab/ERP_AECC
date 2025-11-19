@@ -1,4 +1,4 @@
-export type Page = 'Dashboard' | 'Members' | 'Financial' | 'Events' | 'Documents' | 'Communications' | 'Settings' | 'Sobre';
+export type Page = 'Dashboard' | 'Members' | 'Financial' | 'Events' | 'Documents' | 'Communications' | 'Settings';
 
 export type UserRole = 'Super Admin' | 'Financeiro' | 'Associado';
 
@@ -67,4 +67,14 @@ export interface Communication {
     message: string;
     recipients: string;
     sentAt: string;
+}
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  table_name: string;
+  record_id: string;
+  user_id: string;
+  timestamp: string;
+  details: string;
 }
