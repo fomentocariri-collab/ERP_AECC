@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { Page, User } from '../types';
-import { Home, Users, DollarSign, Calendar, FileText, Send, Settings, ChevronFirst, ChevronLast, LogOut } from 'lucide-react';
+import { Home, Users, DollarSign, Calendar, FileText, Send, Settings, ChevronFirst, ChevronLast, LogOut, Briefcase, Palette, Box } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogoAECC, ASSOCIATION_ACRONYM } from '../constants';
+import { LOGO_BASE64, ASSOCIATION_ACRONYM } from '../constants';
 
 const NAV_ITEMS = [
-  { name: 'Dashboard', icon: <Home size={20}/> },
-  { name: 'Members', icon: <Users size={20}/> },
-  { name: 'Financial', icon: <DollarSign size={20}/> },
-  { name: 'Events', icon: <Calendar size={20}/> },
-  { name: 'Documents', icon: <FileText size={20}/> },
-  { name: 'Communications', icon: <Send size={20}/> },
-  { name: 'Settings', icon: <Settings size={20}/> },
+  { name: 'Dashboard', icon: <Home size={20}/>, label: 'Dashboard' },
+  { name: 'Members', icon: <Users size={20}/>, label: 'Membros' },
+  { name: 'Projects', icon: <Briefcase size={20}/>, label: 'Projetos' }, // Novo
+  { name: 'ServiceProviders', icon: <Palette size={20}/>, label: 'Prestadores' }, // Novo
+  { name: 'Financial', icon: <DollarSign size={20}/>, label: 'Financeiro' },
+  { name: 'Inventory', icon: <Box size={20}/>, label: 'Patrimônio' }, // Novo
+  { name: 'Events', icon: <Calendar size={20}/>, label: 'Eventos' },
+  { name: 'Documents', icon: <FileText size={20}/>, label: 'Documentos' },
+  { name: 'Communications', icon: <Send size={20}/>, label: 'Comunicação' },
+  { name: 'Settings', icon: <Settings size={20}/>, label: 'Configurações' },
 ];
 
 interface SidebarProps {
@@ -33,19 +36,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
   };
 
   return (
-    <aside className="h-screen sticky top-0">
+    <aside className="h-screen sticky top-0 z-20">
       <nav className="h-full flex flex-col bg-white dark:bg-gray-800 border-r dark:border-gray-700 shadow-sm">
         <div className="p-4 pb-2 flex items-center">
-          <LogoAECC className={`overflow-hidden transition-all duration-300 flex-shrink-0 ${expanded ? 'h-8 w-8' : 'w-0'}`} />
-          <span className={`font-bold text-lg ml-3 text-gray-800 dark:text-gray-200 overflow-hidden transition-all whitespace-nowrap duration-200 ${ expanded ? 'opacity-100' : 'opacity-0 w-0' }`} >
-              {ASSOCIATION_ACRONYM}
-          </span>
+          {LOGO_BASE64 !== "[PLACEHOLDER_LOGO]" ? (
+             <img src={LOGO_BASE64} alt="Logo" className={`overflow-hidden transition-all duration-300 flex-shrink-0 ${expanded ? 'h-8 w-auto' : 'w-0'}`} />
+          ) : (
+             <div className={`overflow-hidden transition-all font-bold text-lg flex-shrink-0 text-primary-700 dark:text-primary-400 ${expanded ? 'w-auto' : 'w-0'}`}>{ASSOCIATION_ACRONYM}</div>
+          )}
           <button onClick={() => setExpanded(curr => !curr)} className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 ml-auto">
               {expanded ? <ChevronFirst /> : <ChevronLast />}
           </button>
         </div>
 
-        <ul className="flex-1 px-3">
+        <ul className="flex-1 px-3 overflow-y-auto custom-scrollbar">
           {NAV_ITEMS.map(item => (
             <li
               key={item.name}
@@ -61,8 +65,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
               `}
             >
               {item.icon}
-              <span className={`overflow-hidden transition-all ${expanded ? 'w-52 ml-3' : 'w-0'}`}>
-                {item.name}
+              <span className={`overflow-hidden transition-all whitespace-nowrap ${expanded ? 'w-48 ml-3' : 'w-0'}`}>
+                {item.label}
               </span>
               {!expanded && (
                 <div className={`
@@ -70,9 +74,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
                   bg-secondary-100 text-secondary-800 text-sm
                   invisible opacity-20 -translate-x-3 transition-all
                   group-hover:visible group-hover:opacity-100 group-hover:translate-x-0
-                  dark:bg-secondary-900 dark:text-secondary-200
+                  dark:bg-secondary-900 dark:text-secondary-200 z-50 whitespace-nowrap
                 `}>
-                  {item.name}
+                  {item.label}
                 </div>
               )}
             </li>
@@ -81,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
 
         <div className="border-t dark:border-gray-700 flex flex-col p-3">
           <div className="flex items-center">
-            <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full" />
+            <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full flex-shrink-0" />
             <div className={`flex justify-between items-center overflow-hidden transition-all ${ expanded ? 'w-52 ml-3' : 'w-0' }`}>
               <div className="leading-4">
                 <h4 className="font-bold truncate">{user.name}</h4>

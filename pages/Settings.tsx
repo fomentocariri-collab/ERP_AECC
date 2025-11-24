@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
-import { PlusCircle, Edit, Trash2, Shield } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Shield, Database } from 'lucide-react';
 import { AddUserModal } from '../components/AddUserModal';
+import { DatabaseSchemaHelp } from '../components/DatabaseSchemaHelp';
 
 const INPUT_CLASS = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-500 focus:ring-secondary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-secondary-500 dark:focus:ring-secondary-500";
 
@@ -31,18 +32,15 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
     const [email, setEmail] = useState(currentUser.email);
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
-    const [isSavingProfile, setIsSavingProfile] = useState(false);
+    const [showSql, setShowSql] = useState(false);
 
     const handleProfileSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsSavingProfile(true);
         try {
             await onUpdateUser(currentUser.id, { name, email });
             showToast('Perfil atualizado com sucesso!');
         } catch (error: any) {
-            // Error toast is already shown by handleCrudOperation
-        } finally {
-            setIsSavingProfile(false);
+            // Error toast handled by context
         }
     };
     
@@ -100,16 +98,14 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
                     <form className="space-y-4" onSubmit={handleProfileSubmit}>
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
-                            <input type="text" name="name" id="name" value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLASS} disabled={isSavingProfile}/>
+                            <input type="text" name="name" id="name" value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLASS} />
                         </div>
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                            <input type="email" name="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLASS} disabled={isSavingProfile}/>
+                            <input type="email" name="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLASS} />
                         </div>
                         <div className="text-right">
-                            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800 disabled:bg-secondary-400 disabled:cursor-wait" disabled={isSavingProfile}>
-                                {isSavingProfile ? 'Salvando...' : 'Salvar Alterações'}
-                            </button>
+                            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800">Salvar Alterações</button>
                         </div>
                     </form>
                 </SettingsSection>
@@ -147,6 +143,19 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
                             </ul>
                         </div>
                     </SettingsSection>
+                )}
+
+                {currentUser.role === 'Super Admin' && (
+                     <div className="border-t dark:border-gray-700 pt-6">
+                        <button 
+                            onClick={() => setShowSql(!showSql)}
+                            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                        >
+                            <Database size={16} /> 
+                            {showSql ? 'Ocultar Script de Banco de Dados' : 'Ver Script SQL das Novas Tabelas (Migração)'}
+                        </button>
+                        {showSql && <DatabaseSchemaHelp />}
+                     </div>
                 )}
             </div>
         </>

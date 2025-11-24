@@ -7,6 +7,9 @@ import { Financial } from './pages/Financial';
 import { Events } from './pages/Events';
 import { Documents } from './pages/Documents';
 import { Communications } from './pages/Communications';
+import { Projects } from './pages/Projects';
+import { ServiceProviders } from './pages/ServiceProviders';
+import { Inventory } from './pages/Inventory';
 import { Settings } from './pages/Settings';
 import { Page } from './types';
 import { useAuth } from './contexts/AuthContext';
@@ -28,7 +31,7 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; onClose: () 
   const Icon = isSuccess ? CheckCircle2 : AlertCircle;
 
   return (
-    <div className={`fixed top-20 right-6 p-4 rounded-lg shadow-2xl border ${bgColor} ${borderColor} ${textColor} flex items-center gap-3 z-50`}>
+    <div className={`fixed top-20 right-6 p-4 rounded-lg shadow-2xl border ${bgColor} ${borderColor} ${textColor} flex items-center gap-3 z-50 animate-slide-in`}>
       <Icon className="h-5 w-5" />
       <p className="font-medium text-sm">{message}</p>
     </div>
@@ -38,10 +41,8 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; onClose: () 
 const App: React.FC = () => {
   const { currentUser, loading: authLoading, users, addUser, updateUser, deleteUser } = useAuth();
   
-  // SENIOR UPGRADE: Usando o DataContext como única fonte de verdade.
-  // Removemos toda a lógica de fetch manual e useState local daqui.
   const { 
-    members, transactions, events, documents, communications,
+    members, transactions, events, documents, communications, projects, providers, inventory,
     loading: dataLoading, 
     error: dataError,
     addMember, updateMember, deleteMember,
@@ -54,7 +55,6 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   
-  // Monitora erros globais do contexto
   useEffect(() => {
     if (dataError) {
       setToast({ message: dataError, type: 'error' });
@@ -82,6 +82,20 @@ const App: React.FC = () => {
             userRole={currentUser.role} 
           />
         );
+      case 'Projects':
+        return (
+          <Projects 
+             userRole={currentUser.role}
+             showToast={showToast}
+          />
+        );
+      case 'ServiceProviders':
+        return (
+          <ServiceProviders 
+             userRole={currentUser.role}
+             showToast={showToast}
+          />
+        );
       case 'Financial':
         return (
           <Financial 
@@ -90,6 +104,13 @@ const App: React.FC = () => {
             onAddTransaction={async (t) => { await addTransaction(t); showToast('Transação adicionada'); }}
             onDeleteTransaction={async (id) => { await deleteTransaction(id); showToast('Transação excluída'); }}
             userRole={currentUser.role} 
+          />
+        );
+      case 'Inventory':
+        return (
+          <Inventory 
+             userRole={currentUser.role}
+             showToast={showToast}
           />
         );
       case 'Events':
@@ -116,7 +137,10 @@ const App: React.FC = () => {
           <Communications 
             members={members} 
             communications={communications} 
-            onSendCommunication={async (c) => { await addCommunication(c); showToast('Mensagem registrada'); }}
+            onSendCommunication={async (c, recipients) => { 
+              await addCommunication(c); 
+              showToast('Mensagem registrada'); 
+            }}
             userRole={currentUser.role} 
           />
         );
@@ -157,9 +181,9 @@ const App: React.FC = () => {
           <Header title={currentPage} />
           <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
             {dataLoading && members.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-full flex-col gap-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary-700" />
-                <span className="ml-3 text-gray-500">Sincronizando dados...</span>
+                <span className="text-gray-500">Sincronizando banco de dados...</span>
               </div>
             ) : (
               renderPage()

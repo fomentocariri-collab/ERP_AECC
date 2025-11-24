@@ -5,6 +5,7 @@ export const PROJECT_NAME = "Associação dos Empreendedores Criativos do Cariri
 export const ASSOCIATION_ACRONYM = "AECC";
 export const ERP_NAME = "ERP_AECC";
 export const VERSION = "1.0.2";
+export const LOGO_BASE64 = "[PLACEHOLDER_LOGO]";
 
 // Logo da AECC como um componente SVG em React.
 // Esta abordagem é mais robusta, leve e garante que a imagem sempre será renderizada corretamente.
