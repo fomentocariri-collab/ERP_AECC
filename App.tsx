@@ -13,7 +13,6 @@ import { useAuth } from './contexts/AuthContext';
 import { useData } from './contexts/DataContext';
 import { Login } from './components/Login';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { supabase } from './supabaseClient';
 
 // Toast Notification Component
 const Toast: React.FC<{ message: string; type: 'success' | 'error'; onClose: () => void }> = ({ message, type, onClose }) => {
@@ -38,10 +37,13 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; onClose: () 
 
 const App: React.FC = () => {
   const { currentUser, loading: authLoading, users, addUser, updateUser, deleteUser } = useAuth();
+  
+  // SENIOR UPGRADE: Usando o DataContext como única fonte de verdade.
+  // Removemos toda a lógica de fetch manual e useState local daqui.
   const { 
+    members, transactions, events, documents, communications,
     loading: dataLoading, 
     error: dataError,
-    members, transactions, events, documents, communications,
     addMember, updateMember, deleteMember,
     addTransaction, deleteTransaction,
     addEvent, updateEvent, deleteEvent,
@@ -52,6 +54,7 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   
+  // Monitora erros globais do contexto
   useEffect(() => {
     if (dataError) {
       setToast({ message: dataError, type: 'error' });
@@ -113,19 +116,7 @@ const App: React.FC = () => {
           <Communications 
             members={members} 
             communications={communications} 
-            onSendCommunication={async (c, recipients) => { 
-              try {
-                const { error } = await supabase.functions.invoke('send-email', {
-                    body: { recipients, subject: c.subject, message: c.message }
-                });
-                if (error) throw error;
-                await addCommunication(c); 
-                showToast('Mensagem enviada'); 
-              } catch(e: any) {
-                console.error(e);
-                showToast('Erro ao enviar: ' + (e.message || 'Erro desconhecido'), 'error');
-              }
-            }}
+            onSendCommunication={async (c) => { await addCommunication(c); showToast('Mensagem registrada'); }}
             userRole={currentUser.role} 
           />
         );
@@ -168,6 +159,7 @@ const App: React.FC = () => {
             {dataLoading && members.length === 0 ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-12 w-12 animate-spin text-primary-700" />
+                <span className="ml-3 text-gray-500">Sincronizando dados...</span>
               </div>
             ) : (
               renderPage()

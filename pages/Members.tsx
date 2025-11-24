@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PlusCircle, Search, UserX, Edit, Trash2, Loader2 } from 'lucide-react';
 import { Member, Transaction, Event, UserRole } from '../types';
 import { AddMemberModal } from '../components/AddMemberModal';
 import { MemberDetailModal } from '../components/MemberDetailModal';
-import { useData } from '../contexts/DataContext'; // Import Context to access server-side fetch
+import { useData } from '../contexts/DataContext';
 
 const getStatusBadge = (status: Member['status']) => {
   switch (status) {
@@ -27,17 +27,21 @@ interface MembersProps {
 }
 
 export const Members: React.FC<MembersProps> = ({ members, transactions, events, onAddMember, onUpdateMember, onDeleteMember, userRole }) => {
-  const { fetchMembers, loading } = useData(); // Use context for searching
+  // SENIOR UPGRADE: Usando fetchMembers do Context para Server-Side Filtering
+  const { fetchMembers, loading } = useData(); 
+  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  
+  // States for server-side filtering
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   
   const canPerformActions = userRole === 'Super Admin';
 
-  // Debounce for Search
+  // SENIOR UPGRADE: Debounce para evitar excesso de requisições ao Supabase
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchMembers(searchTerm, statusFilter);
@@ -106,7 +110,7 @@ export const Members: React.FC<MembersProps> = ({ members, transactions, events,
           {canPerformActions && (
             <button
               onClick={handleOpenAddModal}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-700 rounded-lg hover:bg-primary-800 transition-colors"
             >
               <PlusCircle size={16} /> Adicionar Membro
             </button>
@@ -128,7 +132,7 @@ export const Members: React.FC<MembersProps> = ({ members, transactions, events,
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
           >
             <option value="All">Todos os Status</option>
             <option value="Active">Ativos</option>
@@ -139,8 +143,9 @@ export const Members: React.FC<MembersProps> = ({ members, transactions, events,
 
         <div className="overflow-x-auto min-h-[300px]">
           {loading ? (
-             <div className="flex justify-center items-center h-48">
-                <Loader2 className="animate-spin text-primary-600" size={32} />
+             <div className="flex flex-col justify-center items-center h-48 text-gray-500">
+                <Loader2 className="animate-spin text-primary-600 mb-2" size={32} />
+                <span>Buscando dados...</span>
              </div>
           ) : (
           <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
@@ -158,11 +163,11 @@ export const Members: React.FC<MembersProps> = ({ members, transactions, events,
                 members.map((member) => (
                   <tr key={member.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer transition-colors" onClick={() => handleOpenDetailModal(member)}>
                     <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap flex items-center gap-3">
-                      <img src={member.avatarUrl} alt={member.name} className="w-8 h-8 rounded-full object-cover" />
+                      <img src={member.avatarUrl} alt={member.name} className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-600" />
                       {member.name}
                     </td>
                     <td className="px-6 py-4">{member.email}</td>
-                    <td className="px-6 py-4">{member.admissionDate}</td>
+                    <td className="px-6 py-4">{new Date(member.admissionDate).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(member.status)}`}>
                         {member.status}
@@ -170,8 +175,8 @@ export const Members: React.FC<MembersProps> = ({ members, transactions, events,
                     </td>
                     {canPerformActions && (
                        <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                         <button onClick={() => handleOpenEditModal(member)} className="p-2 text-gray-500 hover:text-blue-600"><Edit size={16} /></button>
-                         <button onClick={() => handleDelete(member.id)} className="p-2 text-gray-500 hover:text-primary-700 dark:hover:text-primary-500"><Trash2 size={16} /></button>
+                         <button onClick={() => handleOpenEditModal(member)} className="p-2 text-gray-500 hover:text-blue-600 transition-colors"><Edit size={16} /></button>
+                         <button onClick={() => handleDelete(member.id)} className="p-2 text-gray-500 hover:text-primary-700 dark:hover:text-primary-500 transition-colors"><Trash2 size={16} /></button>
                        </td>
                     )}
                   </tr>
@@ -180,7 +185,7 @@ export const Members: React.FC<MembersProps> = ({ members, transactions, events,
                 <tr className="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
                   <td colSpan={canPerformActions ? 5 : 4} className="text-center py-10">
                     <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                      <UserX size={48} className="mb-2" />
+                      <UserX size={48} className="mb-2 opacity-50" />
                       <h3 className="text-lg font-semibold">Nenhum membro encontrado</h3>
                       <p className="text-sm">Tente ajustar sua busca ou filtro.</p>
                     </div>

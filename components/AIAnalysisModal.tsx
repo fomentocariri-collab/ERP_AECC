@@ -34,9 +34,9 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ isOpen, onClos
         Responda em formato HTML simples (usando tags <p>, <ul>, <li>, <strong>) para ser renderizado dentro de uma div.
         `;
 
-        // Inicializa o cliente Gemini (assumindo que process.env.API_KEY está injetado pelo ambiente/Vite)
-        // NOTA: Em um ambiente real, essa chave deve vir de uma variável de ambiente.
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+        // INICIALIZAÇÃO CORRETA DO GEMINI USANDO process.env.API_KEY
+        // A chave API deve estar configurada no ambiente (ex: .env)
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -46,7 +46,7 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ isOpen, onClos
         setAnalysis(response.text || 'Não foi possível gerar a análise.');
     } catch (error) {
         console.error("Gemini Error:", error);
-        setAnalysis('<p class="text-red-500">Erro ao conectar com a IA. Verifique sua chave de API ou tente novamente mais tarde.</p>');
+        setAnalysis('<p class="text-red-500">Erro ao conectar com a IA. Verifique se a chave API está configurada no ambiente ou tente novamente mais tarde.</p>');
     } finally {
         setLoading(false);
     }
@@ -67,7 +67,7 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ isOpen, onClos
             </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
             {!analysis && !loading && (
                 <div className="text-center py-10">
                     <Sparkles size={64} className="mx-auto text-purple-400 mb-4" />
