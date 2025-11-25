@@ -17,7 +17,6 @@ import { useData } from './contexts/DataContext';
 import { Login } from './components/Login';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
-// Toast Notification Component
 const Toast: React.FC<{ message: string; type: 'success' | 'error'; onClose: () => void }> = ({ message, type, onClose }) => {
   useEffect(() => {
     const timer = setTimeout(onClose, 5000);
@@ -49,7 +48,7 @@ const App: React.FC = () => {
     addTransaction, deleteTransaction,
     addEvent, updateEvent, deleteEvent,
     addDocument, deleteDocument,
-    addCommunication
+    sendCommunication
   } = useData();
 
   const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
@@ -68,109 +67,22 @@ const App: React.FC = () => {
   const renderPage = () => {
     if (!currentUser) return null;
     switch (currentPage) {
-      case 'Dashboard':
-        return <Dashboard members={members} transactions={transactions} events={events} />;
-      case 'Members':
-        return (
-          <Members 
-            members={members} 
-            transactions={transactions} 
-            events={events} 
-            onAddMember={async (m) => { await addMember(m); showToast('Membro adicionado'); }}
-            onUpdateMember={async (id, m) => { await updateMember(id, m); showToast('Membro atualizado'); }}
-            onDeleteMember={async (id) => { await deleteMember(id); showToast('Membro excluído'); }}
-            userRole={currentUser.role} 
-          />
-        );
-      case 'Projects':
-        return (
-          <Projects 
-             userRole={currentUser.role}
-             showToast={showToast}
-          />
-        );
-      case 'ServiceProviders':
-        return (
-          <ServiceProviders 
-             userRole={currentUser.role}
-             showToast={showToast}
-          />
-        );
-      case 'Financial':
-        return (
-          <Financial 
-            transactions={transactions} 
-            members={members} 
-            onAddTransaction={async (t) => { await addTransaction(t); showToast('Transação adicionada'); }}
-            onDeleteTransaction={async (id) => { await deleteTransaction(id); showToast('Transação excluída'); }}
-            userRole={currentUser.role} 
-          />
-        );
-      case 'Inventory':
-        return (
-          <Inventory 
-             userRole={currentUser.role}
-             showToast={showToast}
-          />
-        );
-      case 'Events':
-        return (
-          <Events 
-            events={events} 
-            onAddEvent={async (e) => { await addEvent(e); showToast('Evento criado'); }}
-            onUpdateEvent={async (id, e) => { await updateEvent(id, e); showToast('Evento atualizado'); }}
-            onDeleteEvent={async (id) => { await deleteEvent(id); showToast('Evento excluído'); }}
-            userRole={currentUser.role} 
-          />
-        );
-      case 'Documents':
-        return (
-          <Documents 
-            documents={documents} 
-            onAddDocument={async (d, f) => { await addDocument(d, f); showToast('Documento enviado'); }}
-            onDeleteDocument={async (d) => { await deleteDocument(d); showToast('Documento excluído'); }}
-            userRole={currentUser.role} 
-          />
-        );
-      case 'Communications':
-        return (
-          <Communications 
-            members={members} 
-            communications={communications} 
-            onSendCommunication={async (c, recipients) => { 
-              await addCommunication(c); 
-              showToast('Mensagem registrada'); 
-            }}
-            userRole={currentUser.role} 
-          />
-        );
-      case 'Settings':
-        return (
-            <Settings 
-                currentUser={currentUser} 
-                users={users} 
-                onUpdateUser={updateUser} 
-                onAddUser={addUser} 
-                onDeleteUser={deleteUser} 
-                showToast={showToast} 
-            />
-        );
-      default:
-        return <Dashboard members={members} transactions={transactions} events={events} />;
+      case 'Dashboard': return <Dashboard members={members} transactions={transactions} events={events} />;
+      case 'Members': return <Members members={members} transactions={transactions} events={events} onAddMember={async (m) => { await addMember(m); showToast('Membro adicionado'); }} onUpdateMember={async (id, m) => { await updateMember(id, m); showToast('Membro atualizado'); }} onDeleteMember={async (id) => { await deleteMember(id); showToast('Membro excluído'); }} userRole={currentUser.role} />;
+      case 'Projects': return <Projects userRole={currentUser.role} showToast={showToast} />;
+      case 'ServiceProviders': return <ServiceProviders userRole={currentUser.role} showToast={showToast} />;
+      case 'Financial': return <Financial transactions={transactions} members={members} onAddTransaction={async (t) => { await addTransaction(t); showToast('Transação adicionada'); }} onDeleteTransaction={async (id) => { await deleteTransaction(id); showToast('Transação excluída'); }} userRole={currentUser.role} />;
+      case 'Inventory': return <Inventory userRole={currentUser.role} showToast={showToast} />;
+      case 'Events': return <Events events={events} onAddEvent={async (e) => { await addEvent(e); showToast('Evento criado'); }} onUpdateEvent={async (id, e) => { await updateEvent(id, e); showToast('Evento atualizado'); }} onDeleteEvent={async (id) => { await deleteEvent(id); showToast('Evento excluído'); }} userRole={currentUser.role} />;
+      case 'Documents': return <Documents documents={documents} onAddDocument={async (d, f) => { await addDocument(d, f); showToast('Documento enviado'); }} onDeleteDocument={async (d) => { await deleteDocument(d); showToast('Documento excluído'); }} userRole={currentUser.role} />;
+      case 'Communications': return <Communications members={members} communications={communications} onSendCommunication={async (c, emails) => { await sendCommunication(c, emails); showToast('Mensagem enviada e registrada'); }} userRole={currentUser.role} />;
+      case 'Settings': return <Settings currentUser={currentUser} users={users} onUpdateUser={updateUser} onAddUser={addUser} onDeleteUser={deleteUser} showToast={showToast} />;
+      default: return <Dashboard members={members} transactions={transactions} events={events} />;
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
-        <Loader2 className="h-12 w-12 animate-spin text-primary-700" />
-      </div>
-    );
-  }
-
-  if (!currentUser) {
-    return <Login />;
-  }
+  if (authLoading) return <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900"><Loader2 className="h-12 w-12 animate-spin text-primary-700" /></div>;
+  if (!currentUser) return <Login />;
 
   return (
     <>
@@ -180,19 +92,11 @@ const App: React.FC = () => {
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header title={currentPage} />
           <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
-            {dataLoading && members.length === 0 ? (
-              <div className="flex items-center justify-center h-full flex-col gap-4">
-                <Loader2 className="h-12 w-12 animate-spin text-primary-700" />
-                <span className="text-gray-500">Sincronizando banco de dados...</span>
-              </div>
-            ) : (
-              renderPage()
-            )}
+            {dataLoading && members.length === 0 ? <div className="flex items-center justify-center h-full flex-col gap-4"><Loader2 className="h-12 w-12 animate-spin text-primary-700" /><span className="text-gray-500">Sincronizando banco de dados...</span></div> : renderPage()}
           </main>
         </div>
       </div>
     </>
   );
 };
-
 export default App;

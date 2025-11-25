@@ -36,108 +36,43 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
 
     const handleProfileSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        try {
-            await onUpdateUser(currentUser.id, { name, email });
-            showToast('Perfil atualizado com sucesso!');
-        } catch (error: any) {
-            // Error toast handled by context
-        }
+        try { await onUpdateUser(currentUser.id, { name, email }); showToast('Perfil atualizado com sucesso!'); } catch (error: any) { }
     };
     
     const handleDelete = (userId: string) => {
-        if (currentUser?.id === userId) {
-            showToast("Você não pode excluir seu próprio usuário.", 'error');
-            return;
-        }
-        if (window.confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) {
-            onDeleteUser(userId);
-        }
+        if (currentUser?.id === userId) { showToast("Você não pode excluir seu próprio usuário.", 'error'); return; }
+        if (window.confirm('Excluir este usuário?')) { onDeleteUser(userId); }
     };
 
-    const handleOpenAddUserModal = () => {
-        setEditingUser(null);
-        setIsUserModalOpen(true);
-    };
-
-    const handleOpenEditUserModal = (user: User) => {
-        setEditingUser(user);
-        setIsUserModalOpen(true);
-    };
+    const handleOpenAddUserModal = () => { setEditingUser(null); setIsUserModalOpen(true); };
+    const handleOpenEditUserModal = (user: User) => { setEditingUser(user); setIsUserModalOpen(true); };
     
     const handleSaveUser = async (data: { name: string; email: string; role: UserRole; password?: string; }) => {
-        if (editingUser) {
-            const { password, ...profileData } = data;
-            await onUpdateUser(editingUser.id, profileData);
-        } else {
-            if (!data.password) {
-                showToast("A senha é obrigatória para criar um novo usuário.", 'error');
-                return;
-            }
-            const newUserPayload = {
-                name: data.name,
-                email: data.email,
-                role: data.role,
-                password: data.password,
-            };
-            await onAddUser(newUserPayload);
-        }
+        if (editingUser) { const { password, ...profileData } = data; await onUpdateUser(editingUser.id, profileData); } 
+        else { if (!data.password) { showToast("Senha obrigatória.", 'error'); return; } await onAddUser({ name: data.name, email: data.email, role: data.role, password: data.password }); }
     }
 
     return (
         <>
-            {isUserModalOpen && (
-                 <AddUserModal
-                    isOpen={isUserModalOpen}
-                    onClose={() => setIsUserModalOpen(false)}
-                    onSave={handleSaveUser}
-                    existingUser={editingUser}
-                />
-            )}
+            {isUserModalOpen && <AddUserModal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} onSave={handleSaveUser} existingUser={editingUser} />}
             <div className="space-y-4">
-                <SettingsSection title="Meu Perfil" description="Atualize suas informações pessoais e de contato.">
+                <SettingsSection title="Meu Perfil" description="Atualize suas informações.">
                     <form className="space-y-4" onSubmit={handleProfileSubmit}>
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
-                            <input type="text" name="name" id="name" value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLASS} />
-                        </div>
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                            <input type="email" name="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLASS} />
-                        </div>
-                        <div className="text-right">
-                            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800">Salvar Alterações</button>
-                        </div>
+                        <div><label className="block text-sm font-medium">Nome</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLASS} /></div>
+                        <div><label className="block text-sm font-medium">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLASS} /></div>
+                        <div className="text-right"><button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800">Salvar</button></div>
                     </form>
                 </SettingsSection>
 
                 {currentUser.role === 'Super Admin' && (
-                    <SettingsSection title="Gestão de Usuários" description="Adicione, edite ou remova usuários do sistema.">
+                    <SettingsSection title="Usuários" description="Gerencie o acesso ao sistema.">
                         <div className="space-y-4">
-                            <div className="flex justify-end">
-                                <button onClick={handleOpenAddUserModal} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg hover:bg-secondary-800">
-                                    <PlusCircle size={16} /> Adicionar Usuário
-                                </button>
-                            </div>
+                            <div className="flex justify-end"><button onClick={handleOpenAddUserModal} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-700 rounded-lg"><PlusCircle size={16} /> Adicionar</button></div>
                             <ul className="divide-y dark:divide-gray-700">
                                 {users.map(user => (
                                     <li key={user.id} className="py-3 flex justify-between items-center">
-                                        <div className="flex items-center gap-3">
-                                            <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full" />
-                                            <div>
-                                                <p className="font-semibold">{user.name}</p>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <span className="text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                                                <Shield size={12} className="mr-1.5"/>
-                                                {user.role}
-                                            </span>
-                                            <div>
-                                                <button onClick={() => handleOpenEditUserModal(user)} className="p-2 text-gray-500 hover:text-blue-600"><Edit size={16} /></button>
-                                                <button onClick={() => handleDelete(user.id)} className="p-2 text-gray-500 hover:text-red-600 dark:hover:text-red-500"><Trash2 size={16} /></button>
-                                            </div>
-                                        </div>
+                                        <div className="flex items-center gap-3"><img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full" /><div><p className="font-semibold">{user.name}</p><p className="text-sm text-gray-500">{user.email}</p></div></div>
+                                        <div className="flex items-center gap-4"><span className="text-xs font-medium inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800"><Shield size={12} className="mr-1.5"/>{user.role}</span><div><button onClick={() => handleOpenEditUserModal(user)} className="p-2 text-gray-500 hover:text-blue-600"><Edit size={16} /></button><button onClick={() => handleDelete(user.id)} className="p-2 text-gray-500 hover:text-red-600"><Trash2 size={16} /></button></div></div>
                                     </li>
                                 ))}
                             </ul>
@@ -147,12 +82,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, users, onUpdate
 
                 {currentUser.role === 'Super Admin' && (
                      <div className="border-t dark:border-gray-700 pt-6">
-                        <button 
-                            onClick={() => setShowSql(!showSql)}
-                            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                        >
-                            <Database size={16} /> 
-                            {showSql ? 'Ocultar Script de Banco de Dados' : 'Ver Script SQL das Novas Tabelas (Migração)'}
+                        <button onClick={() => setShowSql(!showSql)} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                            <Database size={16} /> {showSql ? 'Ocultar Script' : 'Ver Script de Migração (SQL)'}
                         </button>
                         {showSql && <DatabaseSchemaHelp />}
                      </div>

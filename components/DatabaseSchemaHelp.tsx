@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { Clipboard, Check, Database, ExternalLink } from 'lucide-react';
 import { supabaseProjectId } from '../supabaseClient';
 
-const MIGRATION_SQL = `-- EXECUTE ESTE SCRIPT NO SUPABASE SQL EDITOR
-
--- 1. TABELA DE PROJETOS
+const MIGRATION_SQL = `-- 1. TABELA DE PROJETOS
 CREATE TABLE IF NOT EXISTS public.projects (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
@@ -63,9 +61,9 @@ ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_providers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventory ENABLE ROW LEVEL SECURITY;
 
--- 6. POLÍTICAS DE ACESSO (Permitir leitura/escrita para usuários autenticados)
+-- 6. POLÍTICAS DE ACESSO
 CREATE POLICY "Enable all for authenticated users on projects" ON public.projects FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Enable all for authenticated users on providers" ON public.service_providers FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Enable all for authenticated users on service_providers" ON public.service_providers FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Enable all for authenticated users on inventory" ON public.inventory FOR ALL TO authenticated USING (true) WITH CHECK (true);
 `;
 
@@ -85,27 +83,18 @@ export const DatabaseSchemaHelp: React.FC = () => {
                 <Database className="text-blue-400" /> Banco de Dados: Script de Migração
             </h3>
             <div className="bg-blue-900/30 border-l-4 border-blue-500 p-4 mb-4 text-sm text-blue-200">
-                <strong>Importante:</strong> Para que as abas de Projetos, Prestadores e Patrimônio funcionem, você precisa criar as tabelas no Supabase.
+                <strong>Importante:</strong> Para que as novas abas funcionem, copie e execute este SQL no Supabase.
             </div>
-            <div className="relative bg-slate-950 p-4 rounded-lg font-mono text-xs overflow-x-auto border border-slate-800 max-h-96 overflow-y-auto custom-scrollbar">
+            <div className="relative bg-slate-950 p-4 rounded-lg font-mono text-xs overflow-x-auto border border-slate-800 max-h-96 custom-scrollbar">
                 <pre>{MIGRATION_SQL}</pre>
-                <button 
-                    onClick={handleCopy} 
-                    className="absolute top-2 right-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-white font-semibold transition-all flex items-center gap-2 shadow-lg"
-                >
+                <button onClick={handleCopy} className="absolute top-2 right-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-white font-semibold transition-all flex items-center gap-2 shadow-lg">
                     {copied ? <Check size={14} className="text-white"/> : <Clipboard size={14} />}
                     {copied ? 'Copiado!' : 'Copiar Script'}
                 </button>
             </div>
             <div className="mt-6 text-right">
-                <a 
-                    href={supabaseSqlUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-md"
-                >
-                    <ExternalLink size={16} />
-                    Abrir SQL Editor e Executar
+                <a href={supabaseSqlUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-md">
+                    <ExternalLink size={16} /> Abrir SQL Editor
                 </a>
             </div>
         </div>

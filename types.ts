@@ -40,7 +40,6 @@ export interface Event {
   type: EventType;
 }
 
-// Atualizado para incluir vínculos com Projetos e Prestadores
 export interface Transaction {
   id: string;
   description: string;
@@ -49,10 +48,10 @@ export interface Transaction {
   date: string;
   memberId?: string;
   memberName?: string;
-  projectId?: string; // ID do Projeto vinculado
-  projectName?: string; // Nome do Projeto
-  providerId?: string; // ID do Prestador vinculado
-  providerName?: string; // Nome do Prestador
+  projectId?: string;
+  projectName?: string;
+  providerId?: string;
+  providerName?: string;
 }
 
 export type DocumentType = 'Statute' | 'Meeting Minutes' | 'Report' | 'Other';

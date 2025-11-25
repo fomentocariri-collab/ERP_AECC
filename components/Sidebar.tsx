@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Page, User } from '../types';
 import { Home, Users, DollarSign, Calendar, FileText, Send, Settings, ChevronFirst, ChevronLast, LogOut, Briefcase, Palette, Box } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { LOGO_BASE64, ASSOCIATION_ACRONYM } from '../constants';
+import { LOGO_BASE64 } from '../constants';
 
 const NAV_ITEMS = [
   { name: 'Dashboard', icon: <Home size={20}/>, label: 'Dashboard' },
@@ -38,14 +38,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
   return (
     <aside className="h-screen sticky top-0 z-20">
       <nav className="h-full flex flex-col bg-white dark:bg-gray-800 border-r dark:border-gray-700 shadow-sm">
-        <div className="p-4 pb-2 flex items-center">
+        <div className="p-4 pb-2 flex justify-between items-center">
           {LOGO_BASE64 !== "[PLACEHOLDER_LOGO]" ? (
-             <img src={LOGO_BASE64} alt="Logo" className={`overflow-hidden transition-all duration-300 flex-shrink-0 ${expanded ? 'h-8 w-auto' : 'w-0'}`} />
+            <img src={LOGO_BASE64} alt="Logo" className={`overflow-hidden transition-all ${expanded ? 'w-32' : 'w-0'}`} />
           ) : (
-             <div className={`overflow-hidden transition-all font-bold text-lg flex-shrink-0 text-primary-700 dark:text-primary-400 ${expanded ? 'w-auto' : 'w-0'}`}>{ASSOCIATION_ACRONYM}</div>
+            <div className={`overflow-hidden transition-all font-bold text-lg text-primary-800 dark:text-white whitespace-nowrap ${expanded ? 'w-32' : 'w-0'}`}>Associação</div>
           )}
           <button onClick={() => setExpanded(curr => !curr)} className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 ml-auto">
-              {expanded ? <ChevronFirst /> : <ChevronLast />}
+            {expanded ? <ChevronFirst /> : <ChevronLast />}
           </button>
         </div>
 
@@ -59,22 +59,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, u
                 font-medium rounded-md cursor-pointer
                 transition-colors group
                 ${currentPage === item.name
-                  ? 'bg-gradient-to-tr from-secondary-200 to-secondary-100 text-secondary-800 dark:from-secondary-900 dark:to-secondary-800 dark:text-white'
-                  : 'hover:bg-secondary-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  ? 'bg-gradient-to-tr from-primary-200 to-primary-100 text-primary-800 dark:from-primary-900 dark:to-primary-800 dark:text-white'
+                  : 'hover:bg-primary-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
                 }
               `}
             >
               {item.icon}
-              <span className={`overflow-hidden transition-all whitespace-nowrap ${expanded ? 'w-48 ml-3' : 'w-0'}`}>
+              <span className={`overflow-hidden transition-all whitespace-nowrap ${expanded ? 'w-52 ml-3' : 'w-0'}`}>
                 {item.label}
               </span>
               {!expanded && (
                 <div className={`
                   absolute left-full rounded-md px-2 py-1 ml-6
-                  bg-secondary-100 text-secondary-800 text-sm
+                  bg-primary-100 text-primary-800 text-sm
                   invisible opacity-20 -translate-x-3 transition-all
                   group-hover:visible group-hover:opacity-100 group-hover:translate-x-0
-                  dark:bg-secondary-900 dark:text-secondary-200 z-50 whitespace-nowrap
+                  dark:bg-primary-900 dark:text-primary-200 z-50 whitespace-nowrap
                 `}>
                   {item.label}
                 </div>
