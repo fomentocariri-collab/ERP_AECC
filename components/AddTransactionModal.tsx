@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction, Member, Project, ServiceProvider } from '../types';
 import { X } from 'lucide-react';
-import { useData } from '../contexts/DataContext'; // Importando para ter acesso a projetos e prestadores
+import { useData } from '../contexts/DataContext';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
@@ -66,6 +66,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
       date,
     };
 
+    // Lógica de vínculo para interagir com os outros módulos
     if (linkType === 'Member') {
         const member = members.find(m => m.id === selectedId);
         transactionData.memberId = selectedId;
@@ -114,45 +115,45 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
               </div>
             </div>
 
-            <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Vincular a:</label>
+            <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Vincular esta transação a:</label>
                 <select value={linkType} onChange={(e) => { setLinkType(e.target.value as LinkType); setSelectedId(''); }} className={INPUT_CLASS}>
-                    <option value="None">Sem Vínculo Específico</option>
+                    <option value="None">Sem Vínculo Específico (Geral)</option>
                     <option value="Member">Associado (Mensalidades, etc)</option>
-                    <option value="Project">Projeto (Custos do projeto)</option>
+                    <option value="Project">Projeto (Custos/Patrocínios)</option>
                     <option value="Provider">Prestador de Serviço (Pagamentos)</option>
                 </select>
+
+                {linkType === 'Member' && (
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Selecione o Associado</label>
+                    <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={INPUT_CLASS} required>
+                        <option value="" disabled>Selecione...</option>
+                        {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                
+                {linkType === 'Project' && (
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Selecione o Projeto</label>
+                    <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={INPUT_CLASS} required>
+                        <option value="" disabled>Selecione...</option>
+                        {projects.length > 0 ? projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>) : <option disabled>Nenhum projeto cadastrado</option>}
+                    </select>
+                  </div>
+                )}
+
+                {linkType === 'Provider' && (
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Selecione o Prestador</label>
+                    <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={INPUT_CLASS} required>
+                        <option value="" disabled>Selecione...</option>
+                        {providers.length > 0 ? providers.map(p => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>) : <option disabled>Nenhum prestador cadastrado</option>}
+                    </select>
+                  </div>
+                )}
             </div>
-
-            {linkType === 'Member' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Selecione o Associado</label>
-                <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={INPUT_CLASS} required>
-                    <option value="" disabled>Selecione...</option>
-                    {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
-              </div>
-            )}
-            
-            {linkType === 'Project' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Selecione o Projeto</label>
-                <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={INPUT_CLASS} required>
-                    <option value="" disabled>Selecione...</option>
-                    {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                </select>
-              </div>
-            )}
-
-            {linkType === 'Provider' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Selecione o Prestador</label>
-                <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={INPUT_CLASS} required>
-                    <option value="" disabled>Selecione...</option>
-                    {providers.map(p => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>)}
-                </select>
-              </div>
-            )}
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

@@ -40,6 +40,7 @@ export interface Event {
   type: EventType;
 }
 
+// Atualizado para incluir vínculos com Projetos e Prestadores
 export interface Transaction {
   id: string;
   description: string;
@@ -48,10 +49,10 @@ export interface Transaction {
   date: string;
   memberId?: string;
   memberName?: string;
-  projectId?: string; // Novo: Vínculo com Projeto
-  projectName?: string;
-  providerId?: string; // Novo: Vínculo com Prestador
-  providerName?: string;
+  projectId?: string; // ID do Projeto vinculado
+  projectName?: string; // Nome do Projeto
+  providerId?: string; // ID do Prestador vinculado
+  providerName?: string; // Nome do Prestador
 }
 
 export type DocumentType = 'Statute' | 'Meeting Minutes' | 'Report' | 'Other';
@@ -73,19 +74,19 @@ export interface Communication {
     sentAt: string;
 }
 
-// --- NOVOS TIPOS ---
+// --- NOVOS MÓDULOS ---
 
 export type ProjectStatus = 'Planning' | 'Active' | 'Completed' | 'Cancelled';
 
 export interface Project {
   id: string;
   title: string;
-  description: string;
+  description: string; // Textão
   startDate: string;
   endDate: string | null;
   status: ProjectStatus;
-  proponent: string; // Quem propôs
-  sponsor: string; // Patrocinador
+  proponent: string;
+  sponsor: string;
   budget: number;
 }
 
@@ -107,20 +108,10 @@ export type InventoryCondition = 'New' | 'Good' | 'Fair' | 'Poor' | 'Broken';
 export interface InventoryItem {
   id: string;
   name: string;
-  code: string; // Código de tombamento
+  code: string; // Tombamento
   acquisitionDate: string;
   value: number;
   condition: InventoryCondition;
   location: string;
   description?: string;
-}
-
-export interface AuditLog {
-  id: string;
-  action: string;
-  table_name: string;
-  record_id: string;
-  user_id: string;
-  timestamp: string;
-  details: string;
 }

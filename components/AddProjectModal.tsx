@@ -20,7 +20,7 @@ const LABEL_CLASS = "block text-sm font-medium text-gray-700 dark:text-gray-300"
 const projectSchema = z.object({
   title: z.string().min(3, "O título deve ter pelo menos 3 caracteres"),
   description: z.string().min(10, "A descrição deve ser mais detalhada"),
-  startDate: z.string().min(1, "Data de início é obrigatória"),
+  startDate: z.string().min(1, "Data de criação/início é obrigatória"),
   endDate: z.string().optional().nullable(),
   status: z.enum(['Planning', 'Active', 'Completed', 'Cancelled']),
   proponent: z.string().min(2, "Informe o proponente"),
@@ -92,7 +92,7 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({ isOpen, onClos
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
                     <label className={LABEL_CLASS}>Título do Projeto</label>
@@ -101,8 +101,8 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({ isOpen, onClos
                 </div>
                 
                 <div className="md:col-span-2">
-                    <label className={LABEL_CLASS}>Descrição Detalhada</label>
-                    <textarea {...register('description')} rows={6} className={TEXTAREA_CLASS} placeholder="Descreva os objetivos, público-alvo e detalhes do projeto..." />
+                    <label className={LABEL_CLASS}>Descrição Detalhada (Espaço para textos grandes)</label>
+                    <textarea {...register('description')} rows={10} className={TEXTAREA_CLASS} placeholder="Descreva os objetivos, público-alvo, metodologia e detalhes completos do projeto..." />
                     {errors.description && <p className={ERROR_CLASS}>{errors.description.message as string}</p>}
                 </div>
 
@@ -119,13 +119,13 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({ isOpen, onClos
                 </div>
 
                 <div>
-                     <label className={LABEL_CLASS}>Data de Início</label>
+                     <label className={LABEL_CLASS}>Data de Criação / Início</label>
                      <input type="date" {...register('startDate')} className={INPUT_CLASS} />
                      {errors.startDate && <p className={ERROR_CLASS}>{errors.startDate.message as string}</p>}
                 </div>
 
                 <div>
-                     <label className={LABEL_CLASS}>Data de Aceite/Término (Opcional)</label>
+                     <label className={LABEL_CLASS}>Data de Aceite / Término (Opcional)</label>
                      <input type="date" {...register('endDate')} className={INPUT_CLASS} />
                 </div>
                 
