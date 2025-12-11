@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { Clipboard, Check, Database, ExternalLink } from 'lucide-react';
 import { supabaseProjectId } from '../supabaseClient';
 
-const MIGRATION_SQL = `-- 1. TABELA DE PROJETOS
+const MIGRATION_SQL = `-- SCRIPT COMPLETO DE RESTAURAÇÃO (TABELAS + PERFIS)
+-- Use este script se as tabelas sumiram ou se usuários não conseguem logar.
+
+-- 1. TABELA DE PROJETOS
 CREATE TABLE IF NOT EXISTS public.projects (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
@@ -42,7 +45,27 @@ CREATE TABLE IF NOT EXISTS public.inventory (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 4. ATUALIZAR TRANSAÇÕES (Adicionar colunas de vínculo)
+-- 4. TABELA DE PERFIS (LOGIN)
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  email TEXT,
+  name TEXT,
+  role TEXT DEFAULT 'Associado',
+  avatar_url TEXT
+);
+
+-- 5. SINCRONIZAR USUÁRIOS PERDIDOS (AUTH -> PUBLIC)
+INSERT INTO public.profiles (id, email, name, role, avatar_url)
+SELECT 
+  id, 
+  email, 
+  COALESCE(raw_user_meta_data->>'name', email),
+  COALESCE(raw_user_meta_data->>'role', 'Associado'),
+  COALESCE(raw_user_meta_data->>'avatar_url', 'https://i.pravatar.cc/150?u=' || email)
+FROM auth.users
+WHERE id NOT IN (SELECT id FROM public.profiles);
+
+-- 6. ATUALIZAR TRANSAÇÕES (Adicionar colunas de vínculo)
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'project_id') THEN
@@ -56,15 +79,24 @@ BEGIN
     END IF;
 END $$;
 
--- 5. HABILITAR SEGURANÇA (RLS)
+-- 7. HABILITAR SEGURANÇA (RLS) E POLÍTICAS
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_providers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- 6. POLÍTICAS DE ACESSO
 CREATE POLICY "Enable all for authenticated users on projects" ON public.projects FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Enable all for authenticated users on service_providers" ON public.service_providers FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Enable all for authenticated users on inventory" ON public.inventory FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Políticas de Perfil (Login)
+DROP POLICY IF EXISTS "Authenticated users can view their own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Super Admins can view all profiles" ON public.profiles;
+
+CREATE POLICY "Authenticated users can view their own profile" ON public.profiles FOR SELECT TO authenticated USING (auth.uid() = id);
+CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
+CREATE POLICY "Super Admins can view all profiles" ON public.profiles FOR SELECT TO authenticated USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'Super Admin' );
 `;
 
 export const DatabaseSchemaHelp: React.FC = () => {
@@ -80,10 +112,10 @@ export const DatabaseSchemaHelp: React.FC = () => {
     return (
         <div className="mt-8 p-6 bg-slate-800 text-slate-200 rounded-xl border border-slate-700 shadow-xl">
             <h3 className="text-xl font-bold flex items-center gap-2 mb-4 text-white">
-                <Database className="text-blue-400" /> Banco de Dados: Script de Migração
+                <Database className="text-blue-400" /> Banco de Dados: Script de Restauração Completa
             </h3>
             <div className="bg-blue-900/30 border-l-4 border-blue-500 p-4 mb-4 text-sm text-blue-200">
-                <strong>Importante:</strong> Para que as novas abas funcionem, copie e execute este SQL no Supabase.
+                <strong>Instruções:</strong> Se tabelas sumiram ou o login parou de funcionar, copie e execute este código no Supabase. Ele recria tabelas faltantes e ressincroniza usuários.
             </div>
             <div className="relative bg-slate-950 p-4 rounded-lg font-mono text-xs overflow-x-auto border border-slate-800 max-h-96 custom-scrollbar">
                 <pre>{MIGRATION_SQL}</pre>

@@ -1,84 +1,124 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, Loader2, AlertTriangle, Clipboard, Check, ExternalLink } from 'lucide-react';
+import { LogIn, Loader2, AlertTriangle, Clipboard, Check, ExternalLink, HelpCircle } from 'lucide-react';
 import { ERP_NAME } from '../constants';
 import { supabaseProjectId } from '../supabaseClient';
 
-const RLS_FIX_SCRIPT = `-- ETAPA 1: Habilite a "Row Level Security" (RLS) para a tabela de perfis.
--- Se já estiver habilitada, este comando não fará nada, mas é essencial garantir.
+const RECOVERY_SCRIPT = `-- SCRIPT DE RECUPERAÇÃO DE LOGIN E PERFIS
+-- Execute este script no SQL Editor do Supabase para corrigir o acesso.
+
+-- 1. Cria a tabela de perfis se ela sumiu na restauração
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  email TEXT,
+  name TEXT,
+  role TEXT DEFAULT 'Associado',
+  avatar_url TEXT
+);
+
+-- 2. Sincroniza usuários do sistema de Autenticação para a tabela pública (CRÍTICO APÓS RESTAURAÇÃO)
+-- Isso pega usuários que estão no Auth mas não no banco de dados público
+INSERT INTO public.profiles (id, email, name, role, avatar_url)
+SELECT 
+  id, 
+  email, 
+  COALESCE(raw_user_meta_data->>'name', email),
+  COALESCE(raw_user_meta_data->>'role', 'Associado'),
+  COALESCE(raw_user_meta_data->>'avatar_url', 'https://i.pravatar.cc/150?u=' || email)
+FROM auth.users
+WHERE id NOT IN (SELECT id FROM public.profiles);
+
+-- 3. Habilita segurança (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- ETAPA 2: Remova políticas antigas e recursivas para evitar conflitos.
-DROP POLICY IF EXISTS "Profiles: Super Admin full access" ON public.profiles;
-DROP POLICY IF EXISTS "Profiles: Financeiro view only" ON public.profiles;
-DROP POLICY IF EXISTS "Profiles: Associado view only" ON public.profiles;
+-- 4. Remove políticas antigas para evitar conflitos
 DROP POLICY IF EXISTS "Authenticated users can view their own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Super Admins can view all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Profiles: Super Admin full access" ON public.profiles;
 
--- ETAPA 3: Crie a política ESSENCIAL que permite a cada usuário ler SEU PRÓPRIO perfil.
--- Esta é a política mais importante para o login funcionar.
+-- 5. Cria políticas de acesso corretas
 CREATE POLICY "Authenticated users can view their own profile"
-ON public.profiles FOR SELECT
-TO authenticated
+ON public.profiles FOR SELECT TO authenticated
 USING (auth.uid() = id);
 
--- ETAPA 4: Permita que os usuários atualizem seus próprios perfis.
 CREATE POLICY "Users can update their own profile"
-ON public.profiles FOR UPDATE
-TO authenticated
-USING (auth.uid() = id)
-WITH CHECK (auth.uid() = id);
+ON public.profiles FOR UPDATE TO authenticated
+USING (auth.uid() = id);
 
--- ETAPA 5: (Opcional) Permita que 'Super Admins' vejam TODOS os perfis.
 CREATE POLICY "Super Admins can view all profiles"
-ON public.profiles FOR SELECT
-TO authenticated
-USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'Super Admin' );`;
+ON public.profiles FOR SELECT TO authenticated
+USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'Super Admin' );
 
-const RLSInfoPanel: React.FC = () => {
+-- 6. DICA: Se seu usuário Admin virou 'Associado', execute manualmente:
+-- UPDATE public.profiles SET role = 'Super Admin' WHERE email = 'SEU_EMAIL_AQUI';
+`;
+
+const RLSInfoPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [copied, setCopied] = useState(false);
   const supabaseSqlUrl = `https://supabase.com/dashboard/project/${supabaseProjectId}/sql/new`;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(RLS_FIX_SCRIPT);
+    navigator.clipboard.writeText(RECOVERY_SCRIPT);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-600 rounded-r-lg mt-4">
-      <div className="flex">
-        <div className="flex-shrink-0">
-          <AlertTriangle className="h-5 w-5 text-yellow-400 dark:text-yellow-500" aria-hidden="true" />
-        </div>
-        <div className="ml-3">
-          <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">Ação Necessária: Corrija as Permissões do Banco de Dados</p>
-          <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300 space-y-2">
-            <p>O login falhou porque o banco de dados não tem permissões (RLS) para ler o perfil do usuário. Para corrigir, siga estes passos no seu painel Supabase:</p>
-            <ol className="list-decimal list-inside space-y-1 pl-2">
-                <li>Acesse o painel do seu projeto no Supabase.</li>
-                <li>Vá para o <strong>SQL Editor</strong>.</li>
-                <li>Copie e execute o script abaixo para aplicar as permissões corretas.</li>
-            </ol>
-            <div className="mt-2 p-2 relative bg-gray-800 dark:bg-gray-900 text-white rounded-md font-mono text-xs overflow-x-auto">
-              <pre><code>{RLS_FIX_SCRIPT}</code></pre>
-              <button onClick={handleCopy} className="absolute top-2 right-2 p-1.5 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition-all">
-                {copied ? <Check size={14} className="text-green-400"/> : <Clipboard size={14} />}
-              </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+        <div className="p-6 border-b dark:border-gray-700 flex justify-between items-start bg-yellow-50 dark:bg-yellow-900/20 rounded-t-xl">
+            <div className="flex gap-4">
+                <div className="flex-shrink-0 bg-yellow-100 dark:bg-yellow-800 p-2 rounded-lg">
+                <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-yellow-400" aria-hidden="true" />
+                </div>
+                <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recuperação de Acesso ao Banco de Dados</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                        Se houve uma restauração no Supabase, as tabelas de perfil podem ter se perdido ou desconectado.
+                        Este script irá recriar a tabela e ressincronizar seus usuários.
+                    </p>
+                </div>
             </div>
-             <div className="mt-4">
-               <a 
+             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <span className="sr-only">Fechar</span>
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        
+        <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50 dark:bg-gray-900">
+             <ol className="list-decimal list-inside space-y-2 mb-4 text-sm text-gray-700 dark:text-gray-300">
+                <li>Copie o código abaixo.</li>
+                <li>Vá para o <strong>SQL Editor</strong> no seu painel Supabase.</li>
+                <li>Cole e clique em <strong>Run</strong>.</li>
+                <li>Tente fazer login novamente.</li>
+            </ol>
+            <div className="relative group">
+              <div className="absolute top-2 right-2 flex gap-2">
+                 <button onClick={handleCopy} className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow-sm transition-all flex items-center gap-2 text-xs font-bold">
+                    {copied ? <Check size={14}/> : <Clipboard size={14} />}
+                    {copied ? 'COPIADO' : 'COPIAR SQL'}
+                  </button>
+              </div>
+              <pre className="p-4 bg-slate-950 text-slate-50 rounded-lg font-mono text-xs overflow-x-auto border border-slate-700 shadow-inner">
+                <code>{RECOVERY_SCRIPT}</code>
+              </pre>
+            </div>
+        </div>
+
+        <div className="p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-800 rounded-b-xl flex justify-between items-center">
+             <a 
                 href={supabaseSqlUrl} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-secondary-700 rounded-md hover:bg-secondary-800"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
               >
-                <ExternalLink size={14} />
-                Abrir Editor SQL do Supabase
+                <ExternalLink size={16} />
+                Abrir Supabase SQL Editor
               </a>
-            </div>
-          </div>
+              <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                Fechar
+              </button>
         </div>
       </div>
     </div>
@@ -90,20 +130,20 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showRLSHelp, setShowRLSHelp] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setShowRLSHelp(false);
     setIsLoading(true);
     try {
       await login(email, password);
     } catch (err: any) {
       console.error(err);
-      if(err.message === "RLS_RECURSION") {
-        setShowRLSHelp(true);
+      // Mostra o help automaticamente se for erro de RLS, mas o botão manual também existe
+      if(err.message === "RLS_RECURSION" || err.message.includes("Perfil")) {
+        setShowHelp(true);
       }
       setError(err.message || 'Ocorreu um erro desconhecido.');
     } finally {
@@ -112,6 +152,8 @@ export const Login: React.FC = () => {
   };
 
   return (
+    <>
+    {showHelp && <RLSInfoPanel onClose={() => setShowHelp(false)} />}
     <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 px-4">
         <div className="max-w-md w-full">
             <div className="text-center mb-8">
@@ -123,7 +165,8 @@ export const Login: React.FC = () => {
                 </p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow-2xl rounded-2xl sm:px-10">
+            <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow-2xl rounded-2xl sm:px-10 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-500 to-secondary-500"></div>
                 <form className="space-y-6" onSubmit={handleSubmit}>
                     <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
@@ -157,22 +200,33 @@ export const Login: React.FC = () => {
                         </div>
                     </div>
                     
-                    {error && !showRLSHelp && <p className="text-sm text-red-500">{error}</p>}
+                    {error && <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-600 dark:text-red-400">{error}</div>}
                     
                     <div>
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-secondary-700 hover:bg-secondary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500 disabled:opacity-50"
+                            className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-secondary-700 hover:bg-secondary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500 disabled:opacity-50 transition-colors"
                         >
                             {isLoading ? <Loader2 className="animate-spin" /> : <LogIn size={20}/>}
                             {isLoading ? 'Entrando...' : 'Entrar'}
                         </button>
                     </div>
                 </form>
+
+                <div className="mt-6 text-center">
+                   <button 
+                     type="button"
+                     onClick={() => setShowHelp(true)}
+                     className="text-xs text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 flex items-center justify-center gap-1 mx-auto"
+                   >
+                     <HelpCircle size={14} />
+                     Problemas para entrar? Clique aqui.
+                   </button>
+                </div>
             </div>
-             {showRLSHelp && <RLSInfoPanel />}
         </div>
     </div>
+    </>
   );
 };
